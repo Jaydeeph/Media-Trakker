@@ -314,6 +314,7 @@ function App() {
       const response = await axios.get(`${API}/search`, {
         params: { query, media_type: mediaType }
       });
+      console.log('Search response:', response.data);
       setSearchResults(response.data.results);
     } catch (error) {
       console.error('Error searching:', error);
