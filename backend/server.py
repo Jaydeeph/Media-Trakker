@@ -79,8 +79,8 @@ class UserListItem(BaseModel):
     id: str = Field(default_factory=lambda: str(uuid.uuid4()))
     user_id: str
     media_id: str
-    media_type: str
-    status: str  # 'watching', 'completed', 'paused', 'planning', 'dropped'
+    media_type: str  # 'movie', 'tv', 'anime', 'manga', 'book', 'game'
+    status: str  # 'watching/reading/playing', 'completed', 'paused', 'planning', 'dropped'
     progress: Optional[Dict] = None  # {'season': 1, 'episode': 5} for TV shows
     rating: Optional[float] = None
     notes: Optional[str] = None
