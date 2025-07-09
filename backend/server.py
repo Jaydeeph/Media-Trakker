@@ -315,49 +315,61 @@ async def get_anilist_details(anilist_id: int, media_type: str):
 
 def process_anilist_data(anilist_data, media_type):
     """Process AniList data into our format"""
-    media = anilist_data["data"]["Page"]["media"] if "Page" in anilist_data["data"] else [anilist_data["data"]["Media"]]
+    if not anilist_data.get("data"):
+        return []
+    
+    if "Page" in anilist_data["data"]:
+        media_list = anilist_data["data"]["Page"]["media"]
+    elif "Media" in anilist_data["data"]:
+        media_list = [anilist_data["data"]["Media"]]
+    else:
+        return []
     
     processed_items = []
-    for item in media:
-        # Get the best available title
-        title = item["title"]["english"] or item["title"]["romaji"] or item["title"]["native"]
-        
-        # Format start date
-        start_date = item.get("startDate")
-        year = start_date.get("year") if start_date else None
-        
-        # Format release date safely
-        release_date = None
-        if start_date and year:
-            month = start_date.get("month", 1)
-            day = start_date.get("day", 1)
-            release_date = f"{year}-{month:02d}-{day:02d}"
-        
-        # Format studios/authors
-        studios = [studio["name"] for studio in item.get("studios", {}).get("nodes", [])]
-        
-        processed_item = {
-            "tmdb_id": item["id"],  # Using AniList ID but keeping field name for consistency
-            "title": title,
-            "media_type": media_type.lower(),
-            "year": year,
-            "genres": item.get("genres", []),
-            "poster_path": item.get("coverImage", {}).get("large"),
-            "overview": item.get("description"),
-            "backdrop_path": item.get("bannerImage"),
-            "vote_average": item.get("averageScore", 0) / 10 if item.get("averageScore") else None,
-            "release_date": release_date,
-            "status": item.get("status"),
-            "episodes": item.get("episodes"),
-            "chapters": item.get("chapters"),
-            "volumes": item.get("volumes"),
-            "start_date": start_date,
-            "end_date": item.get("endDate"),
-            "developers": studios if media_type == "anime" else [],
-            "authors": studios if media_type == "manga" else []
-        }
-        
-        processed_items.append(processed_item)
+    for item in media_list:
+        try:
+            # Get the best available title
+            title = item["title"]["english"] or item["title"]["romaji"] or item["title"]["native"]
+            
+            # Format start date
+            start_date = item.get("startDate")
+            year = start_date.get("year") if start_date else None
+            
+            # Format release date safely
+            release_date = None
+            if start_date and year:
+                month = start_date.get("month", 1)
+                day = start_date.get("day", 1)
+                release_date = f"{year}-{month:02d}-{day:02d}"
+            
+            # Format studios/authors
+            studios = [studio["name"] for studio in item.get("studios", {}).get("nodes", [])]
+            
+            processed_item = {
+                "tmdb_id": item["id"],  # Using AniList ID but keeping field name for consistency
+                "title": title,
+                "media_type": media_type.lower(),
+                "year": year,
+                "genres": item.get("genres", []),
+                "poster_path": item.get("coverImage", {}).get("large"),
+                "overview": item.get("description"),
+                "backdrop_path": item.get("bannerImage"),
+                "vote_average": item.get("averageScore", 0) / 10 if item.get("averageScore") else None,
+                "release_date": release_date,
+                "status": item.get("status"),
+                "episodes": item.get("episodes"),
+                "chapters": item.get("chapters"),
+                "volumes": item.get("volumes"),
+                "start_date": start_date,
+                "end_date": item.get("endDate"),
+                "developers": studios if media_type == "anime" else [],
+                "authors": studios if media_type == "manga" else []
+            }
+            
+            processed_items.append(processed_item)
+        except Exception as e:
+            logging.error(f"Error processing AniList item: {str(e)}")
+            continue
     
     return processed_items
 
