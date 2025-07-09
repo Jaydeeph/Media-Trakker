@@ -285,7 +285,11 @@ const UserList = ({ userListItems, onUpdateItem, onRemoveItem }) => {
               <div className="flex-1">
                 <h3 className="text-lg font-semibold">{item.media_item.title}</h3>
                 <p className="text-gray-600 mb-2">
-                  {item.media_item.media_type === 'movie' ? 'Movie' : 'TV Show'} • {item.media_item.year}
+                  {item.media_item.media_type === 'movie' ? 'Movie' : 
+                   item.media_item.media_type === 'tv' ? 'TV Show' :
+                   item.media_item.media_type === 'anime' ? 'Anime' :
+                   item.media_item.media_type === 'manga' ? 'Manga' :
+                   item.media_item.media_type === 'book' ? 'Book' : 'Game'} • {item.media_item.year || 'Unknown Year'}
                 </p>
                 <div className="flex items-center gap-4 mb-2">
                   <span className="text-sm">Status:</span>
