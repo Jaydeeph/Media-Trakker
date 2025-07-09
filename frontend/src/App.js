@@ -75,9 +75,62 @@ const MediaCard = ({ media, onAddToList, userListItems }) => {
     }
   };
 
-  const statusOptions = media.media_type === 'tv' 
-    ? ['watching', 'completed', 'paused', 'planning', 'dropped']
-    : ['watching', 'completed', 'paused', 'planning', 'dropped'];
+  const getStatusOptions = (mediaType) => {
+    switch (mediaType) {
+      case 'book':
+      case 'manga':
+        return ['reading', 'completed', 'paused', 'planning', 'dropped'];
+      case 'game':
+        return ['playing', 'completed', 'paused', 'planning', 'dropped'];
+      default:
+        return ['watching', 'completed', 'paused', 'planning', 'dropped'];
+    }
+  };
+
+  const getMediaTypeLabel = (mediaType) => {
+    const labels = {
+      'movie': 'Movie',
+      'tv': 'TV Show',
+      'anime': 'Anime',
+      'manga': 'Manga',
+      'book': 'Book',
+      'game': 'Game'
+    };
+    return labels[mediaType] || mediaType;
+  };
+
+  const getProgressInfo = (media) => {
+    switch (media.media_type) {
+      case 'tv':
+      case 'anime':
+        return (
+          <div className="text-sm text-gray-600">
+            {media.seasons && <span>Seasons: {media.seasons} • </span>}
+            {media.episodes && <span>Episodes: {media.episodes}</span>}
+          </div>
+        );
+      case 'manga':
+        return (
+          <div className="text-sm text-gray-600">
+            {media.chapters && <span>Chapters: {media.chapters} • </span>}
+            {media.volumes && <span>Volumes: {media.volumes}</span>}
+          </div>
+        );
+      case 'book':
+        return (
+          <div className="text-sm text-gray-600">
+            {media.page_count && <span>Pages: {media.page_count}</span>}
+            {media.authors && media.authors.length > 0 && (
+              <span> • By: {media.authors.join(', ')}</span>
+            )}
+          </div>
+        );
+      default:
+        return null;
+    }
+  };
+
+  const statusOptions = getStatusOptions(media.media_type);
 
   return (
     <div className="bg-white rounded-lg shadow-md overflow-hidden hover:shadow-lg transition-shadow">
@@ -92,11 +145,11 @@ const MediaCard = ({ media, onAddToList, userListItems }) => {
         <div className="flex-1 p-4">
           <h3 className="text-lg font-semibold mb-2">{media.title}</h3>
           <p className="text-gray-600 mb-2">
-            {media.media_type === 'movie' ? 'Movie' : 'TV Show'} • {media.year}
+            {getMediaTypeLabel(media.media_type)} • {media.year || 'Unknown Year'}
           </p>
           {media.genres && media.genres.length > 0 && (
             <p className="text-sm text-gray-500 mb-2">
-              {media.genres.join(', ')}
+              {media.genres.slice(0, 3).join(', ')}
             </p>
           )}
           {media.vote_average && (
@@ -105,8 +158,10 @@ const MediaCard = ({ media, onAddToList, userListItems }) => {
             </p>
           )}
           
+          {getProgressInfo(media)}
+          
           {!isInList ? (
-            <div className="flex gap-2 items-center">
+            <div className="flex gap-2 items-center mt-3">
               <select
                 value={selectedStatus}
                 onChange={(e) => setSelectedStatus(e.target.value)}
@@ -127,7 +182,7 @@ const MediaCard = ({ media, onAddToList, userListItems }) => {
               </button>
             </div>
           ) : (
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2 mt-3">
               <span className="px-3 py-1 bg-blue-100 text-blue-800 rounded text-sm">
                 {userListItem?.list_item.status.charAt(0).toUpperCase() + userListItem?.list_item.status.slice(1)}
               </span>
@@ -146,12 +201,21 @@ const MediaCard = ({ media, onAddToList, userListItems }) => {
       
       {showDetails && media.overview && (
         <div className="p-4 bg-gray-50 border-t">
-          <p className="text-sm text-gray-700">{media.overview}</p>
-          {media.media_type === 'tv' && (
-            <div className="mt-2 text-sm text-gray-600">
-              {media.seasons && <span>Seasons: {media.seasons} • </span>}
-              {media.episodes && <span>Episodes: {media.episodes}</span>}
-            </div>
+          <p className="text-sm text-gray-700 mb-2">{media.overview}</p>
+          {media.status && (
+            <p className="text-sm text-gray-600 mb-1">
+              <strong>Status:</strong> {media.status}
+            </p>
+          )}
+          {media.publisher && (
+            <p className="text-sm text-gray-600 mb-1">
+              <strong>Publisher:</strong> {media.publisher}
+            </p>
+          )}
+          {media.developers && media.developers.length > 0 && (
+            <p className="text-sm text-gray-600 mb-1">
+              <strong>Studio:</strong> {media.developers.join(', ')}
+            </p>
           )}
         </div>
       )}
