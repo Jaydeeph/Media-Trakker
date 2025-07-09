@@ -55,6 +55,23 @@ class MediaItem(BaseModel):
     episodes: Optional[int] = None
     last_episode_to_air: Optional[Dict] = None
     next_episode_to_air: Optional[Dict] = None
+    # Anime/Manga specific fields
+    chapters: Optional[int] = None
+    volumes: Optional[int] = None
+    status: Optional[str] = None  # FINISHED, RELEASING, NOT_YET_RELEASED, CANCELLED
+    start_date: Optional[Dict] = None
+    end_date: Optional[Dict] = None
+    # Books specific fields
+    authors: Optional[List[str]] = []
+    publisher: Optional[str] = None
+    page_count: Optional[int] = None
+    isbn: Optional[str] = None
+    published_date: Optional[str] = None
+    # Games specific fields
+    platforms: Optional[List[str]] = []
+    developers: Optional[List[str]] = []
+    publishers: Optional[List[str]] = []
+    rating: Optional[float] = None
     created_at: datetime = Field(default_factory=datetime.utcnow)
     updated_at: datetime = Field(default_factory=datetime.utcnow)
 
