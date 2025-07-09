@@ -511,7 +511,7 @@ function App() {
               <div className="text-center py-12 text-gray-500">
                 <div className="text-6xl mb-4">🎬</div>
                 <h2 className="text-2xl font-semibold mb-2">Welcome to Media Trakker</h2>
-                <p>Search for movies and TV shows to start tracking your media consumption!</p>
+                <p>Search for movies, TV shows, anime, manga, and books to start tracking your media consumption!</p>
               </div>
             )}
           </div>
