@@ -260,7 +260,12 @@ const UserList = ({ userListItems, onUpdateItem, onRemoveItem }) => {
         >
           {typeOptions.map(type => (
             <option key={type} value={type}>
-              {type === 'all' ? 'All Types' : type === 'tv' ? 'TV Shows' : 'Movies'}
+              {type === 'all' ? 'All Types' : 
+               type === 'tv' ? 'TV Shows' : 
+               type === 'anime' ? 'Anime' :
+               type === 'manga' ? 'Manga' :
+               type === 'book' ? 'Books' :
+               'Movies'}
             </option>
           ))}
         </select>
