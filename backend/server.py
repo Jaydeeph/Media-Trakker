@@ -419,9 +419,13 @@ async def root():
 
 @api_router.get("/search")
 async def search_media(query: str = Query(...), media_type: str = Query(...), page: int = Query(1)):
-    """Search for media items (movies or TV shows)"""
+    """Search for media items (movies, TV shows, anime, manga, books)"""
     if not query.strip():
         raise HTTPException(status_code=400, detail="Search query cannot be empty")
+    
+    valid_media_types = ["movie", "tv", "anime", "manga", "book"]
+    if media_type not in valid_media_types:
+        raise HTTPException(status_code=400, detail=f"Media type must be one of: {', '.join(valid_media_types)}")
     
     try:
         # First check our local database
@@ -437,44 +441,82 @@ async def search_media(query: str = Query(...), media_type: str = Query(...), pa
                 "source": "local"
             }
         
-        # Otherwise, search TMDB
+        # Otherwise, search external APIs
+        processed_results = []
+        
         if media_type == "movie":
             tmdb_results = await search_tmdb_movies(query, page)
-        elif media_type == "tv":
-            tmdb_results = await search_tmdb_tv_shows(query, page)
-        else:
-            raise HTTPException(status_code=400, detail="Media type must be 'movie' or 'tv'")
-        
-        # Process and cache the results
-        processed_results = []
-        for item in tmdb_results.get("results", []):
-            # Check if we already have this item in our database
-            existing_item = await db.media_items.find_one({
-                "tmdb_id": item["id"],
-                "media_type": media_type
-            })
-            
-            if existing_item:
-                processed_results.append(MediaItem(**existing_item))
-            else:
-                # Get detailed information and cache it
-                if media_type == "movie":
+            for item in tmdb_results.get("results", []):
+                existing_item = await db.media_items.find_one({
+                    "tmdb_id": item["id"],
+                    "media_type": media_type
+                })
+                
+                if existing_item:
+                    processed_results.append(MediaItem(**existing_item))
+                else:
                     detailed_data = await get_movie_details(item["id"])
                     processed_data = process_movie_data(detailed_data)
+                    media_item = MediaItem(**processed_data)
+                    await db.media_items.insert_one(media_item.dict())
+                    processed_results.append(media_item)
+        
+        elif media_type == "tv":
+            tmdb_results = await search_tmdb_tv_shows(query, page)
+            for item in tmdb_results.get("results", []):
+                existing_item = await db.media_items.find_one({
+                    "tmdb_id": item["id"],
+                    "media_type": media_type
+                })
+                
+                if existing_item:
+                    processed_results.append(MediaItem(**existing_item))
                 else:
                     detailed_data = await get_tv_details(item["id"])
                     processed_data = process_tv_data(detailed_data)
+                    media_item = MediaItem(**processed_data)
+                    await db.media_items.insert_one(media_item.dict())
+                    processed_results.append(media_item)
+        
+        elif media_type in ["anime", "manga"]:
+            anilist_results = await search_anilist(query, media_type, page)
+            if anilist_results.get("data") and anilist_results["data"].get("Page"):
+                processed_data_list = process_anilist_data(anilist_results, media_type)
                 
-                # Create MediaItem and save to database
-                media_item = MediaItem(**processed_data)
-                await db.media_items.insert_one(media_item.dict())
-                processed_results.append(media_item)
+                for processed_data in processed_data_list:
+                    existing_item = await db.media_items.find_one({
+                        "tmdb_id": processed_data["tmdb_id"],
+                        "media_type": media_type
+                    })
+                    
+                    if existing_item:
+                        processed_results.append(MediaItem(**existing_item))
+                    else:
+                        media_item = MediaItem(**processed_data)
+                        await db.media_items.insert_one(media_item.dict())
+                        processed_results.append(media_item)
+        
+        elif media_type == "book":
+            books_results = await search_google_books(query, page)
+            processed_data_list = process_google_books_data(books_results)
+            
+            for processed_data in processed_data_list:
+                existing_item = await db.media_items.find_one({
+                    "tmdb_id": processed_data["tmdb_id"],
+                    "media_type": media_type
+                })
+                
+                if existing_item:
+                    processed_results.append(MediaItem(**existing_item))
+                else:
+                    media_item = MediaItem(**processed_data)
+                    await db.media_items.insert_one(media_item.dict())
+                    processed_results.append(media_item)
         
         return {
             "results": processed_results,
-            "source": "tmdb",
-            "total_results": tmdb_results.get("total_results", 0),
-            "total_pages": tmdb_results.get("total_pages", 1)
+            "source": "external",
+            "total_results": len(processed_results)
         }
     
     except Exception as e:
