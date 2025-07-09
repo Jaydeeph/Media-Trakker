@@ -347,7 +347,11 @@ const Stats = ({ stats }) => {
         {Object.entries(stats).map(([mediaType, statsByStatus]) => (
           <div key={mediaType} className="bg-gray-50 p-4 rounded">
             <h3 className="font-semibold mb-2 capitalize">
-              {mediaType === 'tv' ? 'TV Shows' : 'Movies'}
+              {mediaType === 'tv' ? 'TV Shows' : 
+               mediaType === 'anime' ? 'Anime' :
+               mediaType === 'manga' ? 'Manga' :
+               mediaType === 'book' ? 'Books' :
+               mediaType === 'game' ? 'Games' : 'Movies'}
             </h3>
             {Object.entries(statsByStatus).map(([status, count]) => (
               <div key={status} className="flex justify-between text-sm">
