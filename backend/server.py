@@ -31,6 +31,12 @@ TMDB_API_KEY = os.environ.get('TMDB_API_KEY')
 TMDB_BASE_URL = "https://api.themoviedb.org/3"
 TMDB_IMAGE_BASE_URL = "https://image.tmdb.org/t/p/w500"
 
+# AniList Configuration
+ANILIST_API_URL = "https://graphql.anilist.co"
+
+# Google Books Configuration
+GOOGLE_BOOKS_API_URL = "https://www.googleapis.com/books/v1/volumes"
+
 # Pydantic Models
 class MediaItem(BaseModel):
     id: str = Field(default_factory=lambda: str(uuid.uuid4()))
