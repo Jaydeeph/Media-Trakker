@@ -182,6 +182,236 @@ def process_tv_data(tv_data):
         "next_episode_to_air": tv_data.get("next_episode_to_air")
     }
 
+# AniList API Functions
+async def search_anilist(query: str, media_type: str, page: int = 1):
+    """Search anime or manga on AniList"""
+    graphql_query = """
+    query ($search: String, $type: MediaType, $page: Int, $perPage: Int) {
+        Page(page: $page, perPage: $perPage) {
+            media(search: $search, type: $type) {
+                id
+                title {
+                    romaji
+                    english
+                    native
+                }
+                format
+                status
+                episodes
+                chapters
+                volumes
+                genres
+                averageScore
+                popularity
+                startDate {
+                    year
+                    month
+                    day
+                }
+                endDate {
+                    year
+                    month
+                    day
+                }
+                coverImage {
+                    large
+                    medium
+                }
+                bannerImage
+                description
+                studios {
+                    nodes {
+                        name
+                    }
+                }
+                staff {
+                    nodes {
+                        name {
+                            full
+                        }
+                    }
+                }
+            }
+        }
+    }
+    """
+    
+    variables = {
+        "search": query,
+        "type": media_type.upper(),
+        "page": page,
+        "perPage": 10
+    }
+    
+    async with httpx.AsyncClient() as client:
+        response = await client.post(
+            ANILIST_API_URL,
+            json={"query": graphql_query, "variables": variables}
+        )
+        return response.json()
+
+async def get_anilist_details(anilist_id: int, media_type: str):
+    """Get detailed information from AniList"""
+    graphql_query = """
+    query ($id: Int, $type: MediaType) {
+        Media(id: $id, type: $type) {
+            id
+            title {
+                romaji
+                english
+                native
+            }
+            format
+            status
+            episodes
+            chapters
+            volumes
+            genres
+            averageScore
+            popularity
+            startDate {
+                year
+                month
+                day
+            }
+            endDate {
+                year
+                month
+                day
+            }
+            coverImage {
+                large
+                medium
+            }
+            bannerImage
+            description
+            studios {
+                nodes {
+                    name
+                }
+            }
+            staff {
+                nodes {
+                    name {
+                        full
+                    }
+                }
+            }
+        }
+    }
+    """
+    
+    variables = {
+        "id": anilist_id,
+        "type": media_type.upper()
+    }
+    
+    async with httpx.AsyncClient() as client:
+        response = await client.post(
+            ANILIST_API_URL,
+            json={"query": graphql_query, "variables": variables}
+        )
+        return response.json()
+
+def process_anilist_data(anilist_data, media_type):
+    """Process AniList data into our format"""
+    media = anilist_data["data"]["Page"]["media"] if "Page" in anilist_data["data"] else [anilist_data["data"]["Media"]]
+    
+    processed_items = []
+    for item in media:
+        # Get the best available title
+        title = item["title"]["english"] or item["title"]["romaji"] or item["title"]["native"]
+        
+        # Format start date
+        start_date = item.get("startDate")
+        year = start_date.get("year") if start_date else None
+        
+        # Format studios/authors
+        studios = [studio["name"] for studio in item.get("studios", {}).get("nodes", [])]
+        
+        processed_item = {
+            "tmdb_id": item["id"],  # Using AniList ID but keeping field name for consistency
+            "title": title,
+            "media_type": media_type.lower(),
+            "year": year,
+            "genres": item.get("genres", []),
+            "poster_path": item.get("coverImage", {}).get("large"),
+            "overview": item.get("description"),
+            "backdrop_path": item.get("bannerImage"),
+            "vote_average": item.get("averageScore", 0) / 10 if item.get("averageScore") else None,
+            "release_date": f"{year}-{start_date.get('month', 1):02d}-{start_date.get('day', 1):02d}" if start_date and year else None,
+            "status": item.get("status"),
+            "episodes": item.get("episodes"),
+            "chapters": item.get("chapters"),
+            "volumes": item.get("volumes"),
+            "start_date": start_date,
+            "end_date": item.get("endDate"),
+            "developers": studios if media_type == "anime" else [],
+            "authors": studios if media_type == "manga" else []
+        }
+        
+        processed_items.append(processed_item)
+    
+    return processed_items
+
+# Google Books API Functions
+async def search_google_books(query: str, page: int = 1):
+    """Search books on Google Books API"""
+    start_index = (page - 1) * 10
+    
+    async with httpx.AsyncClient() as client:
+        response = await client.get(
+            GOOGLE_BOOKS_API_URL,
+            params={
+                "q": query,
+                "startIndex": start_index,
+                "maxResults": 10
+            }
+        )
+        return response.json()
+
+def process_google_books_data(books_data):
+    """Process Google Books data into our format"""
+    processed_items = []
+    
+    for item in books_data.get("items", []):
+        volume_info = item.get("volumeInfo", {})
+        
+        # Get thumbnail image
+        image_links = volume_info.get("imageLinks", {})
+        poster_path = image_links.get("thumbnail") or image_links.get("smallThumbnail")
+        
+        # Get publication year
+        published_date = volume_info.get("publishedDate", "")
+        year = None
+        if published_date:
+            try:
+                year = int(published_date[:4])
+            except (ValueError, IndexError):
+                pass
+        
+        processed_item = {
+            "tmdb_id": item["id"],  # Using Google Books ID
+            "title": volume_info.get("title", ""),
+            "media_type": "book",
+            "year": year,
+            "genres": volume_info.get("categories", []),
+            "poster_path": poster_path,
+            "overview": volume_info.get("description"),
+            "backdrop_path": None,
+            "vote_average": volume_info.get("averageRating"),
+            "release_date": published_date,
+            "authors": volume_info.get("authors", []),
+            "publisher": volume_info.get("publisher"),
+            "page_count": volume_info.get("pageCount"),
+            "isbn": volume_info.get("industryIdentifiers", [{}])[0].get("identifier") if volume_info.get("industryIdentifiers") else None,
+            "published_date": published_date
+        }
+        
+        processed_items.append(processed_item)
+    
+    return processed_items
+
 # API Routes
 @api_router.get("/")
 async def root():
