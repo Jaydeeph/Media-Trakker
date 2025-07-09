@@ -326,6 +326,13 @@ def process_anilist_data(anilist_data, media_type):
         start_date = item.get("startDate")
         year = start_date.get("year") if start_date else None
         
+        # Format release date safely
+        release_date = None
+        if start_date and year:
+            month = start_date.get("month", 1)
+            day = start_date.get("day", 1)
+            release_date = f"{year}-{month:02d}-{day:02d}"
+        
         # Format studios/authors
         studios = [studio["name"] for studio in item.get("studios", {}).get("nodes", [])]
         
