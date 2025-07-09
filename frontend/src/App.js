@@ -234,7 +234,7 @@ const UserList = ({ userListItems, onUpdateItem, onRemoveItem }) => {
   });
 
   const statusOptions = ['all', 'watching', 'completed', 'paused', 'planning', 'dropped'];
-  const typeOptions = ['all', 'movie', 'tv'];
+  const typeOptions = ['all', 'movie', 'tv', 'anime', 'manga', 'book'];
 
   return (
     <div className="mb-8">
