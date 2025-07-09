@@ -17,23 +17,34 @@ const SearchBar = ({ onSearch, loading }) => {
     }
   };
 
+  const mediaTypeOptions = [
+    { value: 'movie', label: 'Movies' },
+    { value: 'tv', label: 'TV Shows' },
+    { value: 'anime', label: 'Anime' },
+    { value: 'manga', label: 'Manga' },
+    { value: 'book', label: 'Books' }
+  ];
+
   return (
     <form onSubmit={handleSubmit} className="mb-8">
-      <div className="flex gap-4 max-w-2xl mx-auto">
+      <div className="flex gap-4 max-w-3xl mx-auto">
         <input
           type="text"
           value={query}
           onChange={(e) => setQuery(e.target.value)}
-          placeholder="Search for movies or TV shows..."
+          placeholder="Search for movies, TV shows, anime, manga, or books..."
           className="flex-1 px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-transparent"
         />
         <select
           value={mediaType}
           onChange={(e) => setMediaType(e.target.value)}
-          className="px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-500"
+          className="px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-500 min-w-[120px]"
         >
-          <option value="movie">Movies</option>
-          <option value="tv">TV Shows</option>
+          {mediaTypeOptions.map(option => (
+            <option key={option.value} value={option.value}>
+              {option.label}
+            </option>
+          ))}
         </select>
         <button
           type="submit"
