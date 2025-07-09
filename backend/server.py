@@ -346,7 +346,7 @@ def process_anilist_data(anilist_data, media_type):
             "overview": item.get("description"),
             "backdrop_path": item.get("bannerImage"),
             "vote_average": item.get("averageScore", 0) / 10 if item.get("averageScore") else None,
-            "release_date": f"{year}-{start_date.get('month', 1):02d}-{start_date.get('day', 1):02d}" if start_date and year else None,
+            "release_date": release_date,
             "status": item.get("status"),
             "episodes": item.get("episodes"),
             "chapters": item.get("chapters"),
