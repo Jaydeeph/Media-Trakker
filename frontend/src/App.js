@@ -5,10 +5,57 @@ import './App.css';
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
 const API = `${BACKEND_URL}/api`;
 
-// Components
-const SearchBar = ({ onSearch, loading }) => {
+// Sidebar Navigation Component
+const Sidebar = ({ currentPage, onPageChange, userListCounts }) => {
+  const menuItems = [
+    { id: 'dashboard', label: 'Dashboard', icon: '📊' },
+    { id: 'movies', label: 'Movies', icon: '🎬' },
+    { id: 'tv', label: 'TV Shows', icon: '📺' },
+    { id: 'anime', label: 'Anime', icon: '🎌' },
+    { id: 'manga', label: 'Manga', icon: '📚' },
+    { id: 'books', label: 'Books', icon: '📖' },
+    { id: 'profile', label: 'My Profile', icon: '👤' }
+  ];
+
+  return (
+    <div className="w-64 bg-black text-white h-screen fixed left-0 top-0 overflow-y-auto">
+      <div className="p-6">
+        <h1 className="text-2xl font-bold text-red-500 mb-8">Media Trakker</h1>
+        
+        <nav className="space-y-2">
+          {menuItems.map(item => {
+            const count = userListCounts[item.id] || 0;
+            return (
+              <button
+                key={item.id}
+                onClick={() => onPageChange(item.id)}
+                className={`w-full flex items-center justify-between px-4 py-3 rounded-lg transition-colors ${
+                  currentPage === item.id 
+                    ? 'bg-red-600 text-white' 
+                    : 'text-gray-300 hover:bg-gray-800 hover:text-white'
+                }`}
+              >
+                <div className="flex items-center space-x-3">
+                  <span className="text-xl">{item.icon}</span>
+                  <span className="font-medium">{item.label}</span>
+                </div>
+                {(['movies', 'tv', 'anime', 'manga', 'books'].includes(item.id) && count > 0) && (
+                  <span className="bg-red-500 text-white text-xs px-2 py-1 rounded-full">
+                    {count}
+                  </span>
+                )}
+              </button>
+            );
+          })}
+        </nav>
+      </div>
+    </div>
+  );
+};
+
+// Search Bar Component for each media type
+const MediaSearchBar = ({ mediaType, onSearch, loading }) => {
   const [query, setQuery] = useState('');
-  const [mediaType, setMediaType] = useState('movie');
 
   const handleSubmit = (e) => {
     e.preventDefault();
@@ -17,35 +64,27 @@ const SearchBar = ({ onSearch, loading }) => {
     }
   };
 
-  const mediaTypeOptions = [
-    { value: 'movie', label: 'Movies' },
-    { value: 'tv', label: 'TV Shows' },
-    { value: 'anime', label: 'Anime' },
-    { value: 'manga', label: 'Manga' },
-    { value: 'book', label: 'Books' }
-  ];
+  const getPlaceholder = (type) => {
+    const placeholders = {
+      'movie': 'Search for movies...',
+      'tv': 'Search for TV shows...',
+      'anime': 'Search for anime...',
+      'manga': 'Search for manga...',
+      'book': 'Search for books...'
+    };
+    return placeholders[type] || 'Search...';
+  };
 
   return (
     <form onSubmit={handleSubmit} className="mb-8">
-      <div className="flex gap-4 max-w-3xl mx-auto">
+      <div className="flex gap-4 max-w-2xl">
         <input
           type="text"
           value={query}
           onChange={(e) => setQuery(e.target.value)}
-          placeholder="Search for movies, TV shows, anime, manga, or books..."
+          placeholder={getPlaceholder(mediaType)}
           className="flex-1 px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-transparent"
         />
-        <select
-          value={mediaType}
-          onChange={(e) => setMediaType(e.target.value)}
-          className="px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-500 min-w-[120px]"
-        >
-          {mediaTypeOptions.map(option => (
-            <option key={option.value} value={option.value}>
-              {option.label}
-            </option>
-          ))}
-        </select>
         <button
           type="submit"
           disabled={loading}
@@ -56,7 +95,6 @@ const SearchBar = ({ onSearch, loading }) => {
       </div>
     </form>
   );
-};
 
 const MediaCard = ({ media, onAddToList, userListItems }) => {
   const [showDetails, setShowDetails] = useState(false);
