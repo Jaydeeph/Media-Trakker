@@ -176,113 +176,116 @@ const Dashboard = ({ stats, userListItems }) => {
   );
 };
 
-const UserList = ({ userListItems, onUpdateItem, onRemoveItem }) => {
-  const [selectedStatus, setSelectedStatus] = useState('all');
-  const [selectedMediaType, setSelectedMediaType] = useState('all');
+// Main App Component
+function App() {
+  const [searchResults, setSearchResults] = useState([]);
+  const [userListItems, setUserListItems] = useState([]);
+  const [stats, setStats] = useState({});
+  const [loading, setLoading] = useState(false);
+  const [currentPage, setCurrentPage] = useState('dashboard');
 
-  const filteredItems = userListItems.filter(item => {
-    const statusMatch = selectedStatus === 'all' || item.list_item.status === selectedStatus;
-    const typeMatch = selectedMediaType === 'all' || item.media_item.media_type === selectedMediaType;
-    return statusMatch && typeMatch;
-  });
+  useEffect(() => {
+    loadUserList();
+    loadStats();
+  }, []);
 
-  const statusOptions = ['all', 'watching', 'completed', 'paused', 'planning', 'dropped'];
-  const typeOptions = ['all', 'movie', 'tv', 'anime', 'manga', 'book'];
+  const loadUserList = async () => {
+    try {
+      const response = await axios.get(`${API}/user-list`);
+      setUserListItems(response.data);
+    } catch (error) {
+      console.error('Error loading user list:', error);
+    }
+  };
 
-  return (
-    <div className="mb-8">
-      <h2 className="text-2xl font-bold mb-4">My List ({userListItems.length})</h2>
-      
-      <div className="flex gap-4 mb-4">
-        <select
-          value={selectedStatus}
-          onChange={(e) => setSelectedStatus(e.target.value)}
-          className="px-3 py-2 border border-gray-300 rounded"
-        >
-          {statusOptions.map(status => (
-            <option key={status} value={status}>
-              {status === 'all' ? 'All Status' : status.charAt(0).toUpperCase() + status.slice(1)}
-            </option>
-          ))}
-        </select>
-        
-        <select
-          value={selectedMediaType}
-          onChange={(e) => setSelectedMediaType(e.target.value)}
-          className="px-3 py-2 border border-gray-300 rounded"
-        >
-          {typeOptions.map(type => (
-            <option key={type} value={type}>
-              {type === 'all' ? 'All Types' : 
-               type === 'tv' ? 'TV Shows' : 
-               type === 'anime' ? 'Anime' :
-               type === 'manga' ? 'Manga' :
-               type === 'book' ? 'Books' :
-               'Movies'}
-            </option>
-          ))}
-        </select>
-      </div>
+  const loadStats = async () => {
+    try {
+      const response = await axios.get(`${API}/stats`);
+      setStats(response.data);
+    } catch (error) {
+      console.error('Error loading stats:', error);
+    }
+  };
 
-      <div className="grid gap-4">
-        {filteredItems.map(item => (
-          <div key={item.list_item.id} className="bg-white rounded-lg shadow-md p-4">
-            <div className="flex items-start gap-4">
-              {item.media_item.poster_path && (
-                <img
-                  src={item.media_item.poster_path}
-                  alt={item.media_item.title}
-                  className="w-16 h-24 object-cover rounded"
-                />
-              )}
-              <div className="flex-1">
-                <h3 className="text-lg font-semibold">{item.media_item.title}</h3>
-                <p className="text-gray-600 mb-2">
-                  {item.media_item.media_type === 'movie' ? 'Movie' : 
-                   item.media_item.media_type === 'tv' ? 'TV Show' :
-                   item.media_item.media_type === 'anime' ? 'Anime' :
-                   item.media_item.media_type === 'manga' ? 'Manga' :
-                   item.media_item.media_type === 'book' ? 'Book' : 'Game'} • {item.media_item.year || 'Unknown Year'}
-                </p>
-                <div className="flex items-center gap-4 mb-2">
-                  <span className="text-sm">Status:</span>
-                  <select
-                    value={item.list_item.status}
-                    onChange={(e) => onUpdateItem(item.list_item.id, { status: e.target.value })}
-                    className="px-2 py-1 border border-gray-300 rounded text-sm"
-                  >
-                    {statusOptions.slice(1).map(status => (
-                      <option key={status} value={status}>
-                        {status.charAt(0).toUpperCase() + status.slice(1)}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-                {item.list_item.rating && (
-                  <p className="text-sm text-yellow-600 mb-2">
-                    Your Rating: ⭐ {item.list_item.rating}/10
-                  </p>
-                )}
-                <button
-                  onClick={() => onRemoveItem(item.list_item.id)}
-                  className="text-sm text-red-600 hover:text-red-800"
-                >
-                  Remove from List
-                </button>
+  const getUserListCounts = () => {
+    const counts = {};
+    userListItems.forEach(item => {
+      const mediaType = item.media_item.media_type;
+      counts[mediaType] = (counts[mediaType] || 0) + 1;
+    });
+    return counts;
+  };
+
+  const handleSearch = async (query, mediaType) => {
+    setLoading(true);
+    try {
+      const response = await axios.get(`${API}/search`, {
+        params: { query, media_type: mediaType }
+      });
+      setSearchResults(response.data.results);
+    } catch (error) {
+      console.error('Error searching:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const renderPage = () => {
+    switch (currentPage) {
+      case 'dashboard':
+        return <Dashboard stats={stats} userListItems={userListItems} />;
+      case 'movies':
+        return (
+          <div className="space-y-6">
+            <div className="flex items-center gap-4">
+              <span className="text-4xl">🎬</span>
+              <div>
+                <h1 className="text-3xl font-bold text-gray-900">Movies</h1>
+                <p className="text-gray-600">Discover and track your favorite movies</p>
               </div>
             </div>
+            <MediaSearchBar mediaType="movie" onSearch={handleSearch} loading={loading} />
+            {searchResults.length > 0 ? (
+              <div className="space-y-6">
+                <h2 className="text-xl font-semibold">Search Results</h2>
+                <div className="grid gap-6">
+                  {searchResults.map(media => (
+                    <div key={media.id} className="bg-white rounded-lg shadow-md p-4">
+                      <h3 className="text-lg font-semibold">{media.title}</h3>
+                      <p className="text-gray-600">{media.year}</p>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            ) : (
+              <div className="text-center py-12 text-gray-500">
+                <div className="text-6xl mb-4">🎬</div>
+                <h2 className="text-2xl font-semibold mb-2">Search for Movies</h2>
+                <p>Use the search bar above to find and add movies to your list!</p>
+              </div>
+            )}
           </div>
-        ))}
+        );
+      default:
+        return <Dashboard stats={stats} userListItems={userListItems} />;
+    }
+  };
+
+  return (
+    <div className="min-h-screen bg-gray-50 flex">
+      <Sidebar 
+        currentPage={currentPage} 
+        onPageChange={setCurrentPage}
+        userListCounts={getUserListCounts()}
+      />
+      <div className="flex-1 ml-64">
+        <main className="p-8">
+          {renderPage()}
+        </main>
       </div>
-      
-      {filteredItems.length === 0 && (
-        <div className="text-center py-8 text-gray-500">
-          No items found in your list.
-        </div>
-      )}
     </div>
   );
-};
+}
 
 const Stats = ({ stats }) => {
   const totalItems = Object.values(stats).reduce((acc, mediaStats) => {
