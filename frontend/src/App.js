@@ -96,167 +96,82 @@ const MediaSearchBar = ({ mediaType, onSearch, loading }) => {
     </form>
   );
 
-const MediaCard = ({ media, onAddToList, userListItems }) => {
-  const [showDetails, setShowDetails] = useState(false);
-  const [selectedStatus, setSelectedStatus] = useState('watching');
-  const [loading, setLoading] = useState(false);
+// Dashboard Page Component  
+const Dashboard = ({ stats, userListItems }) => {
+  const totalItems = Object.values(stats).reduce((acc, mediaStats) => {
+    return acc + Object.values(mediaStats).reduce((sum, count) => sum + count, 0);
+  }, 0);
 
-  const isInList = userListItems.some(item => item.media_item.id === media.id);
-  const userListItem = userListItems.find(item => item.media_item.id === media.id);
-
-  const handleAddToList = async () => {
-    setLoading(true);
-    try {
-      await onAddToList(media.id, media.media_type, selectedStatus);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const getStatusOptions = (mediaType) => {
-    switch (mediaType) {
-      case 'book':
-      case 'manga':
-        return ['reading', 'completed', 'paused', 'planning', 'dropped'];
-      case 'game':
-        return ['playing', 'completed', 'paused', 'planning', 'dropped'];
-      default:
-        return ['watching', 'completed', 'paused', 'planning', 'dropped'];
-    }
+  const getRecentActivity = () => {
+    return userListItems
+      .sort((a, b) => new Date(b.list_item.created_at) - new Date(a.list_item.created_at))
+      .slice(0, 5);
   };
 
   const getMediaTypeLabel = (mediaType) => {
     const labels = {
-      'movie': 'Movie',
-      'tv': 'TV Show',
+      'movie': 'Movies',
+      'tv': 'TV Shows', 
       'anime': 'Anime',
       'manga': 'Manga',
-      'book': 'Book',
-      'game': 'Game'
+      'book': 'Books',
+      'game': 'Games'
     };
     return labels[mediaType] || mediaType;
   };
 
-  const getProgressInfo = (media) => {
-    switch (media.media_type) {
-      case 'tv':
-      case 'anime':
-        return (
-          <div className="text-sm text-gray-600">
-            {media.seasons && <span>Seasons: {media.seasons} • </span>}
-            {media.episodes && <span>Episodes: {media.episodes}</span>}
-          </div>
-        );
-      case 'manga':
-        return (
-          <div className="text-sm text-gray-600">
-            {media.chapters && <span>Chapters: {media.chapters} • </span>}
-            {media.volumes && <span>Volumes: {media.volumes}</span>}
-          </div>
-        );
-      case 'book':
-        return (
-          <div className="text-sm text-gray-600">
-            {media.page_count && <span>Pages: {media.page_count}</span>}
-            {media.authors && media.authors.length > 0 && (
-              <span> • By: {media.authors.join(', ')}</span>
-            )}
-          </div>
-        );
-      default:
-        return null;
-    }
-  };
-
-  const statusOptions = getStatusOptions(media.media_type);
-
   return (
-    <div className="bg-white rounded-lg shadow-md overflow-hidden hover:shadow-lg transition-shadow">
-      <div className="flex">
-        {media.poster_path && (
-          <img
-            src={media.poster_path}
-            alt={media.title}
-            className="w-32 h-48 object-cover"
-          />
-        )}
-        <div className="flex-1 p-4">
-          <h3 className="text-lg font-semibold mb-2">{media.title}</h3>
-          <p className="text-gray-600 mb-2">
-            {getMediaTypeLabel(media.media_type)} • {media.year || 'Unknown Year'}
-          </p>
-          {media.genres && media.genres.length > 0 && (
-            <p className="text-sm text-gray-500 mb-2">
-              {media.genres.slice(0, 3).join(', ')}
-            </p>
-          )}
-          {media.vote_average && (
-            <p className="text-sm text-yellow-600 mb-2">
-              ⭐ {media.vote_average.toFixed(1)}/10
-            </p>
-          )}
-          
-          {getProgressInfo(media)}
-          
-          {!isInList ? (
-            <div className="flex gap-2 items-center mt-3">
-              <select
-                value={selectedStatus}
-                onChange={(e) => setSelectedStatus(e.target.value)}
-                className="px-3 py-1 border border-gray-300 rounded text-sm"
-              >
-                {statusOptions.map(status => (
-                  <option key={status} value={status}>
-                    {status.charAt(0).toUpperCase() + status.slice(1)}
-                  </option>
-                ))}
-              </select>
-              <button
-                onClick={handleAddToList}
-                disabled={loading}
-                className="px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700 disabled:opacity-50 text-sm"
-              >
-                {loading ? 'Adding...' : 'Add to List'}
-              </button>
-            </div>
-          ) : (
-            <div className="flex items-center gap-2 mt-3">
-              <span className="px-3 py-1 bg-blue-100 text-blue-800 rounded text-sm">
-                {userListItem?.list_item.status.charAt(0).toUpperCase() + userListItem?.list_item.status.slice(1)}
-              </span>
-              <span className="text-sm text-green-600">✓ In your list</span>
-            </div>
-          )}
-          
-          <button
-            onClick={() => setShowDetails(!showDetails)}
-            className="mt-2 text-sm text-blue-600 hover:text-blue-800"
-          >
-            {showDetails ? 'Hide Details' : 'Show Details'}
-          </button>
-        </div>
+    <div className="space-y-8">
+      <div>
+        <h1 className="text-3xl font-bold text-gray-900 mb-2">Dashboard</h1>
+        <p className="text-gray-600">Overview of your media consumption</p>
       </div>
-      
-      {showDetails && media.overview && (
-        <div className="p-4 bg-gray-50 border-t">
-          <p className="text-sm text-gray-700 mb-2">{media.overview}</p>
-          {media.status && (
-            <p className="text-sm text-gray-600 mb-1">
-              <strong>Status:</strong> {media.status}
-            </p>
-          )}
-          {media.publisher && (
-            <p className="text-sm text-gray-600 mb-1">
-              <strong>Publisher:</strong> {media.publisher}
-            </p>
-          )}
-          {media.developers && media.developers.length > 0 && (
-            <p className="text-sm text-gray-600 mb-1">
-              <strong>Studio:</strong> {media.developers.join(', ')}
-            </p>
-          )}
+
+      {/* Stats Overview */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+        <div className="bg-gradient-to-r from-blue-500 to-blue-600 rounded-lg p-6 text-white">
+          <div className="text-3xl font-bold">{totalItems}</div>
+          <div className="text-blue-100">Total Items</div>
         </div>
-      )}
+        
+        {Object.entries(stats).map(([mediaType, statsByStatus]) => {
+          const count = Object.values(statsByStatus).reduce((sum, val) => sum + val, 0);
+          return (
+            <div key={mediaType} className="bg-white rounded-lg p-6 shadow-md border-l-4 border-red-500">
+              <div className="text-2xl font-bold text-gray-900">{count}</div>
+              <div className="text-gray-600">{getMediaTypeLabel(mediaType)}</div>
+            </div>
+          );
+        })}
+      </div>
+
+      {/* Recent Activity */}
+      <div className="bg-white rounded-lg shadow-md p-6">
+        <h2 className="text-xl font-bold mb-4">Recent Activity</h2>
+        {getRecentActivity().length > 0 ? (
+          <div className="space-y-3">
+            {getRecentActivity().map(item => (
+              <div key={item.list_item.id} className="flex items-center gap-4 p-3 bg-gray-50 rounded-lg">
+                {item.media_item.poster_path && (
+                  <img
+                    src={item.media_item.poster_path}
+                    alt={item.media_item.title}
+                    className="w-12 h-16 object-cover rounded"
+                  />
+                )}
+                <div className="flex-1">
+                  <h3 className="font-semibold">{item.media_item.title}</h3>
+                  <p className="text-sm text-gray-600">
+                    {getMediaTypeLabel(item.media_item.media_type)} • {item.list_item.status}
+                  </p>
+                </div>
+              </div>
+            ))}
+          </div>
+        ) : (
+          <p className="text-gray-500">No recent activity. Start adding some media to your lists!</p>
+        )}
+      </div>
     </div>
   );
 };
