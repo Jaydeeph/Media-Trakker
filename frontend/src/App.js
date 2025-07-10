@@ -29,11 +29,11 @@ const Sidebar = ({ currentPage, onPageChange, userListCounts }) => {
               <button
                 key={item.id}
                 onClick={() => onPageChange(item.id)}
-                className={\`w-full flex items-center justify-between px-4 py-3 rounded-lg transition-colors \${
+                className={`w-full flex items-center justify-between px-4 py-3 rounded-lg transition-colors ${
                   currentPage === item.id 
                     ? 'bg-red-600 text-white' 
                     : 'text-gray-300 hover:bg-gray-800 hover:text-white'
-                }\`}
+                }`}
               >
                 <div className="flex items-center space-x-3">
                   <span className="text-xl">{item.icon}</span>
