@@ -29,11 +29,11 @@ const Sidebar = ({ currentPage, onPageChange, userListCounts }) => {
               <button
                 key={item.id}
                 onClick={() => onPageChange(item.id)}
-                className={`w-full flex items-center justify-between px-4 py-3 rounded-lg transition-colors ${
+                className={\`w-full flex items-center justify-between px-4 py-3 rounded-lg transition-colors \${
                   currentPage === item.id 
                     ? 'bg-red-600 text-white' 
                     : 'text-gray-300 hover:bg-gray-800 hover:text-white'
-                }`}
+                }\`}
               >
                 <div className="flex items-center space-x-3">
                   <span className="text-xl">{item.icon}</span>
@@ -95,6 +95,7 @@ const MediaSearchBar = ({ mediaType, onSearch, loading }) => {
       </div>
     </form>
   );
+};
 
 // Dashboard Page Component  
 const Dashboard = ({ stats, userListItems }) => {
@@ -191,7 +192,7 @@ function App() {
 
   const loadUserList = async () => {
     try {
-      const response = await axios.get(`${API}/user-list`);
+      const response = await axios.get(\`\${API}/user-list\`);
       setUserListItems(response.data);
     } catch (error) {
       console.error('Error loading user list:', error);
@@ -200,7 +201,7 @@ function App() {
 
   const loadStats = async () => {
     try {
-      const response = await axios.get(`${API}/stats`);
+      const response = await axios.get(\`\${API}/stats\`);
       setStats(response.data);
     } catch (error) {
       console.error('Error loading stats:', error);
@@ -219,7 +220,7 @@ function App() {
   const handleSearch = async (query, mediaType) => {
     setLoading(true);
     try {
-      const response = await axios.get(`${API}/search`, {
+      const response = await axios.get(\`\${API}/search\`, {
         params: { query, media_type: mediaType }
       });
       setSearchResults(response.data.results);
@@ -283,208 +284,6 @@ function App() {
           {renderPage()}
         </main>
       </div>
-    </div>
-  );
-}
-
-const Stats = ({ stats }) => {
-  const totalItems = Object.values(stats).reduce((acc, mediaStats) => {
-    return acc + Object.values(mediaStats).reduce((sum, count) => sum + count, 0);
-  }, 0);
-
-  return (
-    <div className="bg-white rounded-lg shadow-md p-6 mb-8">
-      <h2 className="text-2xl font-bold mb-4">Your Stats</h2>
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <div className="text-center">
-          <div className="text-3xl font-bold text-blue-600">{totalItems}</div>
-          <div className="text-gray-600">Total Items</div>
-        </div>
-        {Object.entries(stats).map(([mediaType, statsByStatus]) => (
-          <div key={mediaType} className="bg-gray-50 p-4 rounded">
-            <h3 className="font-semibold mb-2 capitalize">
-              {mediaType === 'tv' ? 'TV Shows' : 
-               mediaType === 'anime' ? 'Anime' :
-               mediaType === 'manga' ? 'Manga' :
-               mediaType === 'book' ? 'Books' :
-               mediaType === 'game' ? 'Games' : 'Movies'}
-            </h3>
-            {Object.entries(statsByStatus).map(([status, count]) => (
-              <div key={status} className="flex justify-between text-sm">
-                <span className="capitalize">{status}:</span>
-                <span className="font-medium">{count}</span>
-              </div>
-            ))}
-          </div>
-        ))}
-      </div>
-    </div>
-  );
-};
-
-function App() {
-  const [searchResults, setSearchResults] = useState([]);
-  const [userListItems, setUserListItems] = useState([]);
-  const [stats, setStats] = useState({});
-  const [loading, setLoading] = useState(false);
-  const [currentView, setCurrentView] = useState('search');
-
-  useEffect(() => {
-    loadUserList();
-    loadStats();
-  }, []);
-
-  const loadUserList = async () => {
-    try {
-      const response = await axios.get(`${API}/user-list`);
-      setUserListItems(response.data);
-    } catch (error) {
-      console.error('Error loading user list:', error);
-    }
-  };
-
-  const loadStats = async () => {
-    try {
-      const response = await axios.get(`${API}/stats`);
-      setStats(response.data);
-    } catch (error) {
-      console.error('Error loading stats:', error);
-    }
-  };
-
-  const handleSearch = async (query, mediaType) => {
-    setLoading(true);
-    try {
-      const response = await axios.get(`${API}/search`, {
-        params: { query, media_type: mediaType }
-      });
-      console.log('Search response:', response.data);
-      setSearchResults(response.data.results);
-    } catch (error) {
-      console.error('Error searching:', error);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleAddToList = async (mediaId, mediaType, status) => {
-    try {
-      await axios.post(`${API}/user-list`, {
-        media_id: mediaId,
-        media_type: mediaType,
-        status: status
-      });
-      await loadUserList();
-      await loadStats();
-    } catch (error) {
-      console.error('Error adding to list:', error);
-    }
-  };
-
-  const handleUpdateItem = async (listItemId, updateData) => {
-    try {
-      await axios.put(`${API}/user-list/${listItemId}`, updateData);
-      await loadUserList();
-      await loadStats();
-    } catch (error) {
-      console.error('Error updating item:', error);
-    }
-  };
-
-  const handleRemoveItem = async (listItemId) => {
-    try {
-      await axios.delete(`${API}/user-list/${listItemId}`);
-      await loadUserList();
-      await loadStats();
-    } catch (error) {
-      console.error('Error removing item:', error);
-    }
-  };
-
-  return (
-    <div className="min-h-screen bg-gray-50">
-      {/* Header */}
-      <header className="bg-black text-white shadow-lg">
-        <div className="max-w-7xl mx-auto px-4 py-6">
-          <div className="flex items-center justify-between">
-            <h1 className="text-3xl font-bold text-red-500">Media Trakker</h1>
-            <nav className="space-x-6">
-              <button
-                onClick={() => setCurrentView('search')}
-                className={`px-4 py-2 rounded transition-colors ${
-                  currentView === 'search' 
-                    ? 'bg-red-600 text-white' 
-                    : 'text-gray-300 hover:text-white'
-                }`}
-              >
-                Search
-              </button>
-              <button
-                onClick={() => setCurrentView('list')}
-                className={`px-4 py-2 rounded transition-colors ${
-                  currentView === 'list' 
-                    ? 'bg-red-600 text-white' 
-                    : 'text-gray-300 hover:text-white'
-                }`}
-              >
-                My List ({userListItems.length})
-              </button>
-              <button
-                onClick={() => setCurrentView('stats')}
-                className={`px-4 py-2 rounded transition-colors ${
-                  currentView === 'stats' 
-                    ? 'bg-red-600 text-white' 
-                    : 'text-gray-300 hover:text-white'
-                }`}
-              >
-                Stats
-              </button>
-            </nav>
-          </div>
-        </div>
-      </header>
-
-      {/* Main Content */}
-      <main className="max-w-7xl mx-auto px-4 py-8">
-        {currentView === 'search' && (
-          <div>
-            <SearchBar onSearch={handleSearch} loading={loading} />
-            
-            {searchResults.length > 0 && (
-              <div className="grid gap-6">
-                {searchResults.map(media => (
-                  <MediaCard
-                    key={media.id}
-                    media={media}
-                    onAddToList={handleAddToList}
-                    userListItems={userListItems}
-                  />
-                ))}
-              </div>
-            )}
-            
-            {!loading && searchResults.length === 0 && (
-              <div className="text-center py-12 text-gray-500">
-                <div className="text-6xl mb-4">🎬</div>
-                <h2 className="text-2xl font-semibold mb-2">Welcome to Media Trakker</h2>
-                <p>Search for movies, TV shows, anime, manga, and books to start tracking your media consumption!</p>
-              </div>
-            )}
-          </div>
-        )}
-
-        {currentView === 'list' && (
-          <UserList
-            userListItems={userListItems}
-            onUpdateItem={handleUpdateItem}
-            onRemoveItem={handleRemoveItem}
-          />
-        )}
-
-        {currentView === 'stats' && (
-          <Stats stats={stats} />
-        )}
-      </main>
     </div>
   );
 }
