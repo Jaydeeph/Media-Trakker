@@ -1,9 +1,8 @@
 from fastapi import FastAPI, APIRouter, HTTPException, Query, Depends
 from dotenv import load_dotenv
 from starlette.middleware.cors import CORSMiddleware
-from motor.motor_asyncio import AsyncIOMotorClient
 from sqlalchemy.orm import Session
-from database import get_db, create_tables, UserList, UserPreferences
+from database import get_db, create_tables, UserList, UserPreferences, MediaItem
 import os
 import logging
 from pathlib import Path
@@ -12,16 +11,10 @@ from typing import List, Optional, Dict, Any
 import uuid
 from datetime import datetime
 import httpx
-import asyncio
 import json
 
 ROOT_DIR = Path(__file__).parent
 load_dotenv(ROOT_DIR / '.env')
-
-# MongoDB connection (for external API caching)
-mongo_url = os.environ['MONGO_URL']
-mongo_client = AsyncIOMotorClient(mongo_url)
-mongo_db = mongo_client[os.environ['DB_NAME']]
 
 # Create PostgreSQL tables
 create_tables()
@@ -32,7 +25,7 @@ app = FastAPI()
 # Create a router with the /api prefix
 api_router = APIRouter(prefix="/api")
 
-# TMDB Configuration
+# External API Configuration
 TMDB_API_KEY = os.environ.get('TMDB_API_KEY')
 TMDB_BASE_URL = "https://api.themoviedb.org/3"
 TMDB_IMAGE_BASE_URL = "https://image.tmdb.org/t/p/w500"
@@ -40,11 +33,11 @@ ANILIST_API_URL = "https://graphql.anilist.co"
 GOOGLE_BOOKS_API_URL = "https://www.googleapis.com/books/v1/volumes"
 
 # Pydantic Models
-class MediaItem(BaseModel):
-    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
-    tmdb_id: int
+class MediaItemResponse(BaseModel):
+    id: str
+    external_id: str
     title: str
-    media_type: str  # 'movie', 'tv', 'anime', 'manga', 'book'
+    media_type: str
     year: Optional[int] = None
     genres: List[str] = []
     poster_path: Optional[str] = None
@@ -52,7 +45,6 @@ class MediaItem(BaseModel):
     backdrop_path: Optional[str] = None
     vote_average: Optional[float] = None
     release_date: Optional[str] = None
-    # Media-specific fields
     seasons: Optional[int] = None
     episodes: Optional[int] = None
     chapters: Optional[int] = None
@@ -60,8 +52,6 @@ class MediaItem(BaseModel):
     authors: Optional[List[str]] = []
     publisher: Optional[str] = None
     page_count: Optional[int] = None
-    created_at: datetime = Field(default_factory=datetime.utcnow)
-    updated_at: datetime = Field(default_factory=datetime.utcnow)
 
 class UserListItemCreate(BaseModel):
     media_id: str
@@ -82,7 +72,7 @@ class UserPreferencesUpdate(BaseModel):
     language: Optional[str] = None
     notifications_enabled: Optional[bool] = None
 
-# External API Functions (same as before)
+# External API Functions
 async def search_tmdb_movies(query: str, page: int = 1):
     async with httpx.AsyncClient() as client:
         response = await client.get(
@@ -163,9 +153,10 @@ async def search_google_books(query: str, page: int = 1):
             logging.error(f"Google Books API error: {str(e)}")
             return {"items": []}
 
-def process_movie_data(movie_data):
-    return {
-        "tmdb_id": movie_data["id"],
+# Helper functions to create MediaItem objects and cache them in PostgreSQL
+def create_media_item_from_tmdb_movie(movie_data, db: Session):
+    media_data = {
+        "external_id": str(movie_data["id"]),
         "title": movie_data["title"],
         "media_type": "movie",
         "year": int(movie_data["release_date"][:4]) if movie_data.get("release_date") else None,
@@ -176,10 +167,25 @@ def process_movie_data(movie_data):
         "vote_average": movie_data.get("vote_average"),
         "release_date": movie_data.get("release_date")
     }
+    
+    # Check if already exists
+    existing = db.query(MediaItem).filter(
+        MediaItem.external_id == media_data["external_id"],
+        MediaItem.media_type == "movie"
+    ).first()
+    
+    if existing:
+        return existing
+    
+    media_item = MediaItem(**media_data)
+    db.add(media_item)
+    db.commit()
+    db.refresh(media_item)
+    return media_item
 
-def process_tv_data(tv_data):
-    return {
-        "tmdb_id": tv_data["id"],
+def create_media_item_from_tmdb_tv(tv_data, db: Session):
+    media_data = {
+        "external_id": str(tv_data["id"]),
         "title": tv_data.get("name", tv_data.get("original_name")),
         "media_type": "tv",
         "year": int(tv_data["first_air_date"][:4]) if tv_data.get("first_air_date") else None,
@@ -192,42 +198,61 @@ def process_tv_data(tv_data):
         "seasons": tv_data.get("number_of_seasons"),
         "episodes": tv_data.get("number_of_episodes")
     }
-
-def process_anilist_data(anilist_data, media_type):
-    if not anilist_data.get("data") or not anilist_data["data"].get("Page"):
-        return []
     
-    processed_items = []
-    for item in anilist_data["data"]["Page"]["media"]:
-        try:
-            title = item["title"]["english"] or item["title"]["romaji"] or item["title"]["native"]
-            start_date = item.get("startDate")
-            year = start_date.get("year") if start_date else None
-            
-            processed_item = {
-                "tmdb_id": item["id"],
-                "title": title,
-                "media_type": media_type.lower(),
-                "year": year,
-                "genres": item.get("genres", []),
-                "poster_path": item.get("coverImage", {}).get("large"),
-                "overview": item.get("description"),
-                "vote_average": item.get("averageScore", 0) / 10 if item.get("averageScore") else None,
-                "episodes": item.get("episodes"),
-                "chapters": item.get("chapters"),
-                "volumes": item.get("volumes")
-            }
-            processed_items.append(processed_item)
-        except Exception as e:
-            logging.error(f"Error processing AniList item: {str(e)}")
-            continue
+    existing = db.query(MediaItem).filter(
+        MediaItem.external_id == media_data["external_id"],
+        MediaItem.media_type == "tv"
+    ).first()
     
-    return processed_items
+    if existing:
+        return existing
+    
+    media_item = MediaItem(**media_data)
+    db.add(media_item)
+    db.commit()
+    db.refresh(media_item)
+    return media_item
 
-def process_google_books_data(books_data):
-    processed_items = []
-    for item in books_data.get("items", []):
-        volume_info = item.get("volumeInfo", {})
+def create_media_item_from_anilist(item_data, media_type, db: Session):
+    try:
+        title = item_data["title"]["english"] or item_data["title"]["romaji"] or item_data["title"]["native"]
+        start_date = item_data.get("startDate")
+        year = start_date.get("year") if start_date else None
+        
+        media_data = {
+            "external_id": str(item_data["id"]),
+            "title": title,
+            "media_type": media_type.lower(),
+            "year": year,
+            "genres": item_data.get("genres", []),
+            "poster_path": item_data.get("coverImage", {}).get("large"),
+            "overview": item_data.get("description"),
+            "vote_average": item_data.get("averageScore", 0) / 10 if item_data.get("averageScore") else None,
+            "episodes": item_data.get("episodes"),
+            "chapters": item_data.get("chapters"),
+            "volumes": item_data.get("volumes")
+        }
+        
+        existing = db.query(MediaItem).filter(
+            MediaItem.external_id == media_data["external_id"],
+            MediaItem.media_type == media_type.lower()
+        ).first()
+        
+        if existing:
+            return existing
+        
+        media_item = MediaItem(**media_data)
+        db.add(media_item)
+        db.commit()
+        db.refresh(media_item)
+        return media_item
+    except Exception as e:
+        logging.error(f"Error creating AniList media item: {str(e)}")
+        return None
+
+def create_media_item_from_book(book_data, db: Session):
+    try:
+        volume_info = book_data.get("volumeInfo", {})
         image_links = volume_info.get("imageLinks", {})
         poster_path = image_links.get("thumbnail") or image_links.get("smallThumbnail")
         
@@ -239,8 +264,8 @@ def process_google_books_data(books_data):
             except (ValueError, IndexError):
                 pass
         
-        processed_item = {
-            "tmdb_id": hash(item["id"]) % (10**8),  # Convert string ID to int
+        media_data = {
+            "external_id": book_data["id"],
             "title": volume_info.get("title", ""),
             "media_type": "book",
             "year": year,
@@ -252,17 +277,31 @@ def process_google_books_data(books_data):
             "publisher": volume_info.get("publisher"),
             "page_count": volume_info.get("pageCount")
         }
-        processed_items.append(processed_item)
-    
-    return processed_items
+        
+        existing = db.query(MediaItem).filter(
+            MediaItem.external_id == media_data["external_id"],
+            MediaItem.media_type == "book"
+        ).first()
+        
+        if existing:
+            return existing
+        
+        media_item = MediaItem(**media_data)
+        db.add(media_item)
+        db.commit()
+        db.refresh(media_item)
+        return media_item
+    except Exception as e:
+        logging.error(f"Error creating book media item: {str(e)}")
+        return None
 
 # API Routes
 @api_router.get("/")
 async def root():
-    return {"message": "Media Trakker API with PostgreSQL"}
+    return {"message": "Media Trakker API - Full PostgreSQL"}
 
 @api_router.get("/search")
-async def search_media(query: str = Query(...), media_type: str = Query(...), page: int = Query(1)):
+async def search_media(query: str = Query(...), media_type: str = Query(...), page: int = Query(1), db: Session = Depends(get_db)):
     if not query.strip():
         raise HTTPException(status_code=400, detail="Search query cannot be empty")
     
@@ -271,53 +310,121 @@ async def search_media(query: str = Query(...), media_type: str = Query(...), pa
         raise HTTPException(status_code=400, detail=f"Media type must be one of: {', '.join(valid_media_types)}")
     
     try:
-        # Check MongoDB cache first
-        local_results = await mongo_db.media_items.find({
-            "title": {"$regex": query, "$options": "i"},
-            "media_type": media_type
-        }).limit(10).to_list(10)
+        # Check PostgreSQL cache first
+        cached_results = db.query(MediaItem).filter(
+            MediaItem.title.ilike(f"%{query}%"),
+            MediaItem.media_type == media_type
+        ).limit(10).all()
         
-        if local_results and len(local_results) >= 5:
-            return {"results": [MediaItem(**item) for item in local_results], "source": "cache"}
+        if cached_results and len(cached_results) >= 5:
+            return {
+                "results": [MediaItemResponse(
+                    id=item.id,
+                    external_id=item.external_id,
+                    title=item.title,
+                    media_type=item.media_type,
+                    year=item.year,
+                    genres=item.genres or [],
+                    poster_path=item.poster_path,
+                    overview=item.overview,
+                    backdrop_path=item.backdrop_path,
+                    vote_average=item.vote_average,
+                    release_date=item.release_date,
+                    seasons=item.seasons,
+                    episodes=item.episodes,
+                    chapters=item.chapters,
+                    volumes=item.volumes,
+                    authors=item.authors or [],
+                    publisher=item.publisher,
+                    page_count=item.page_count
+                ) for item in cached_results],
+                "source": "cache"
+            }
         
-        # Search external APIs
-        processed_results = []
+        # Search external APIs and cache results
+        results = []
         
         if media_type == "movie":
             tmdb_results = await search_tmdb_movies(query, page)
             for item in tmdb_results.get("results", []):
                 detailed_data = await get_movie_details(item["id"])
-                processed_data = process_movie_data(detailed_data)
-                media_item = MediaItem(**processed_data)
-                await mongo_db.media_items.insert_one(media_item.dict())
-                processed_results.append(media_item)
+                media_item = create_media_item_from_tmdb_movie(detailed_data, db)
+                if media_item:
+                    results.append(MediaItemResponse(
+                        id=media_item.id,
+                        external_id=media_item.external_id,
+                        title=media_item.title,
+                        media_type=media_item.media_type,
+                        year=media_item.year,
+                        genres=media_item.genres or [],
+                        poster_path=media_item.poster_path,
+                        overview=media_item.overview,
+                        vote_average=media_item.vote_average,
+                        release_date=media_item.release_date
+                    ))
         
         elif media_type == "tv":
             tmdb_results = await search_tmdb_tv_shows(query, page)
             for item in tmdb_results.get("results", []):
                 detailed_data = await get_tv_details(item["id"])
-                processed_data = process_tv_data(detailed_data)
-                media_item = MediaItem(**processed_data)
-                await mongo_db.media_items.insert_one(media_item.dict())
-                processed_results.append(media_item)
+                media_item = create_media_item_from_tmdb_tv(detailed_data, db)
+                if media_item:
+                    results.append(MediaItemResponse(
+                        id=media_item.id,
+                        external_id=media_item.external_id,
+                        title=media_item.title,
+                        media_type=media_item.media_type,
+                        year=media_item.year,
+                        genres=media_item.genres or [],
+                        poster_path=media_item.poster_path,
+                        overview=media_item.overview,
+                        vote_average=media_item.vote_average,
+                        seasons=media_item.seasons,
+                        episodes=media_item.episodes
+                    ))
         
         elif media_type in ["anime", "manga"]:
             anilist_results = await search_anilist(query, media_type, page)
-            processed_data_list = process_anilist_data(anilist_results, media_type)
-            for processed_data in processed_data_list:
-                media_item = MediaItem(**processed_data)
-                await mongo_db.media_items.insert_one(media_item.dict())
-                processed_results.append(media_item)
+            if anilist_results.get("data") and anilist_results["data"].get("Page"):
+                for item in anilist_results["data"]["Page"]["media"]:
+                    media_item = create_media_item_from_anilist(item, media_type, db)
+                    if media_item:
+                        results.append(MediaItemResponse(
+                            id=media_item.id,
+                            external_id=media_item.external_id,
+                            title=media_item.title,
+                            media_type=media_item.media_type,
+                            year=media_item.year,
+                            genres=media_item.genres or [],
+                            poster_path=media_item.poster_path,
+                            overview=media_item.overview,
+                            vote_average=media_item.vote_average,
+                            episodes=media_item.episodes,
+                            chapters=media_item.chapters,
+                            volumes=media_item.volumes
+                        ))
         
         elif media_type == "book":
             books_results = await search_google_books(query, page)
-            processed_data_list = process_google_books_data(books_results)
-            for processed_data in processed_data_list:
-                media_item = MediaItem(**processed_data)
-                await mongo_db.media_items.insert_one(media_item.dict())
-                processed_results.append(media_item)
+            for item in books_results.get("items", []):
+                media_item = create_media_item_from_book(item, db)
+                if media_item:
+                    results.append(MediaItemResponse(
+                        id=media_item.id,
+                        external_id=media_item.external_id,
+                        title=media_item.title,
+                        media_type=media_item.media_type,
+                        year=media_item.year,
+                        genres=media_item.genres or [],
+                        poster_path=media_item.poster_path,
+                        overview=media_item.overview,
+                        vote_average=media_item.vote_average,
+                        authors=media_item.authors or [],
+                        publisher=media_item.publisher,
+                        page_count=media_item.page_count
+                    ))
         
-        return {"results": processed_results, "source": "external"}
+        return {"results": results, "source": "external"}
     
     except Exception as e:
         logging.error(f"Error searching media: {str(e)}")
@@ -342,7 +449,7 @@ async def add_to_user_list(item: UserListItemCreate, db: Session = Depends(get_d
         status=item.status,
         rating=item.rating,
         notes=item.notes,
-        progress=json.dumps(item.progress) if item.progress else None
+        progress=item.progress
     )
     
     db.add(db_item)
@@ -362,10 +469,10 @@ async def get_user_list(status: Optional[str] = None, media_type: Optional[str] 
     
     list_items = query.all()
     
-    # Enrich with media details from MongoDB
+    # Enrich with media details from PostgreSQL
     enriched_items = []
     for item in list_items:
-        media_item = await mongo_db.media_items.find_one({"id": item.media_id})
+        media_item = db.query(MediaItem).filter(MediaItem.id == item.media_id).first()
         if media_item:
             enriched_items.append({
                 "list_item": {
@@ -376,11 +483,30 @@ async def get_user_list(status: Optional[str] = None, media_type: Optional[str] 
                     "status": item.status,
                     "rating": item.rating,
                     "notes": item.notes,
-                    "progress": json.loads(item.progress) if item.progress else None,
+                    "progress": item.progress,
                     "created_at": item.created_at.isoformat(),
                     "updated_at": item.updated_at.isoformat()
                 },
-                "media_item": MediaItem(**media_item)
+                "media_item": MediaItemResponse(
+                    id=media_item.id,
+                    external_id=media_item.external_id,
+                    title=media_item.title,
+                    media_type=media_item.media_type,
+                    year=media_item.year,
+                    genres=media_item.genres or [],
+                    poster_path=media_item.poster_path,
+                    overview=media_item.overview,
+                    backdrop_path=media_item.backdrop_path,
+                    vote_average=media_item.vote_average,
+                    release_date=media_item.release_date,
+                    seasons=media_item.seasons,
+                    episodes=media_item.episodes,
+                    chapters=media_item.chapters,
+                    volumes=media_item.volumes,
+                    authors=media_item.authors or [],
+                    publisher=media_item.publisher,
+                    page_count=media_item.page_count
+                )
             })
     
     return enriched_items
@@ -403,7 +529,7 @@ async def update_user_list_item(list_item_id: str, update_data: UserListItemUpda
     if update_data.notes is not None:
         db_item.notes = update_data.notes
     if update_data.progress is not None:
-        db_item.progress = json.dumps(update_data.progress)
+        db_item.progress = update_data.progress
     
     db_item.updated_at = datetime.utcnow()
     db.commit()
@@ -447,7 +573,7 @@ async def get_user_preferences(db: Session = Depends(get_db)):
     
     if not preferences:
         # Create default preferences
-        preferences = UserPreferences(user_id="demo_user", theme="light")
+        preferences = UserPreferences(user_id="demo_user", theme="dark")
         db.add(preferences)
         db.commit()
         db.refresh(preferences)
@@ -491,7 +617,3 @@ app.add_middleware(
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
-
-@app.on_event("shutdown")
-async def shutdown_db_client():
-    mongo_client.close()
