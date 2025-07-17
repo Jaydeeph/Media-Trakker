@@ -690,7 +690,13 @@ async def get_user_list(status: Optional[str] = None, media_type: Optional[str] 
                     volumes=media_item.volumes,
                     authors=media_item.authors or [],
                     publisher=media_item.publisher,
-                    page_count=media_item.page_count
+                    page_count=media_item.page_count,
+                    platforms=media_item.platforms or [],
+                    developers=media_item.developers or [],
+                    publishers=media_item.publishers or [],
+                    release_year=media_item.release_year,
+                    rating=media_item.rating,
+                    game_modes=media_item.game_modes or []
                 )
             })
     
