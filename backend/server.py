@@ -2,7 +2,7 @@ from fastapi import FastAPI, APIRouter, HTTPException, Query, Depends
 from dotenv import load_dotenv
 from starlette.middleware.cors import CORSMiddleware
 from sqlalchemy.orm import Session
-from .database import get_db, create_tables, UserList, UserPreferences, MediaItem
+from database import get_db, create_tables, UserList, UserPreferences, MediaItem, media_items_collection, user_lists_collection, user_preferences_collection
 import os
 import logging
 from pathlib import Path
