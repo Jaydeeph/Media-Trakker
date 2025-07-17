@@ -1,82 +1,87 @@
-from motor.motor_asyncio import AsyncIOMotorClient
-from dotenv import load_dotenv
-import os
-from typing import Optional, Dict, Any, List
-from datetime import datetime
+from sqlalchemy import create_engine, Column, String, Integer, Float, DateTime, Text, Boolean, JSON
+from sqlalchemy.ext.declarative import declarative_base
+from sqlalchemy.orm import sessionmaker
 import uuid
+from datetime import datetime
+import os
 
-load_dotenv()
+# PostgreSQL Database Setup
+POSTGRES_URL = os.environ.get('POSTGRES_URL', 'postgresql://postgres:password@localhost:5432/media_trakker')
+engine = create_engine(POSTGRES_URL)
+SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
+Base = declarative_base()
 
-# MongoDB Setup
-MONGO_URL = os.environ.get('MONGO_URL', 'mongodb://localhost:27017')
-DB_NAME = os.environ.get('DB_NAME', 'test_database')
+# Media Items Cache Table
+class MediaItem(Base):
+    __tablename__ = "media_items"
+    
+    id = Column(String, primary_key=True, default=lambda: str(uuid.uuid4()))
+    external_id = Column(String, index=True)  # TMDB ID, AniList ID, IGDB ID etc.
+    title = Column(String, index=True)
+    media_type = Column(String, index=True)  # movie, tv, anime, manga, book, game
+    year = Column(Integer, nullable=True)
+    genres = Column(JSON, nullable=True)  # Store as JSON array
+    poster_path = Column(String, nullable=True)
+    overview = Column(Text, nullable=True)
+    backdrop_path = Column(String, nullable=True)
+    vote_average = Column(Float, nullable=True)
+    release_date = Column(String, nullable=True)
+    # Media-specific fields
+    seasons = Column(Integer, nullable=True)
+    episodes = Column(Integer, nullable=True)
+    chapters = Column(Integer, nullable=True)
+    volumes = Column(Integer, nullable=True)
+    authors = Column(JSON, nullable=True)  # Store as JSON array
+    publisher = Column(String, nullable=True)
+    page_count = Column(Integer, nullable=True)
+    # Games-specific fields
+    platforms = Column(JSON, nullable=True)  # Store as JSON array
+    developers = Column(JSON, nullable=True)  # Store as JSON array
+    publishers = Column(JSON, nullable=True)  # Store as JSON array
+    release_year = Column(Integer, nullable=True)
+    rating = Column(Float, nullable=True)  # IGDB rating
+    game_modes = Column(JSON, nullable=True)  # Store as JSON array
+    additional_data = Column(JSON, nullable=True)  # Flexible field for any extra data
+    created_at = Column(DateTime, default=datetime.utcnow)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
-client = AsyncIOMotorClient(MONGO_URL)
-db = client[DB_NAME]
+# User Lists Table
+class UserList(Base):
+    __tablename__ = "user_lists"
+    
+    id = Column(String, primary_key=True, default=lambda: str(uuid.uuid4()))
+    user_id = Column(String, index=True, default="demo_user")
+    media_id = Column(String, index=True)  # References MediaItem.id
+    media_type = Column(String, index=True)
+    status = Column(String, index=True)  # watching, completed, paused, planning, dropped, playing
+    rating = Column(Float, nullable=True)
+    notes = Column(Text, nullable=True)
+    progress = Column(JSON, nullable=True)  # JSON for flexible progress tracking
+    started_date = Column(DateTime, nullable=True)
+    completed_date = Column(DateTime, nullable=True)
+    created_at = Column(DateTime, default=datetime.utcnow)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
-# MongoDB Collections
-media_items_collection = db.media_items
-user_lists_collection = db.user_lists
-user_preferences_collection = db.user_preferences
+# User Preferences Table
+class UserPreferences(Base):
+    __tablename__ = "user_preferences"
+    
+    id = Column(String, primary_key=True, default=lambda: str(uuid.uuid4()))
+    user_id = Column(String, index=True, unique=True, default="demo_user")
+    theme = Column(String, default="dark")  # light, dark
+    language = Column(String, default="en")
+    notifications_enabled = Column(Boolean, default=True)
+    created_at = Column(DateTime, default=datetime.utcnow)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
-# Database functions
-async def get_db():
-    return db
+# Create all tables
+def create_tables():
+    Base.metadata.create_all(bind=engine)
 
-async def create_tables():
-    # MongoDB doesn't need table creation
-    pass
-
-# Helper functions for data operations
-class MediaItem:
-    def __init__(self, **kwargs):
-        self.id = str(uuid.uuid4())
-        self.external_id = kwargs.get('external_id')
-        self.title = kwargs.get('title')
-        self.media_type = kwargs.get('media_type')
-        self.year = kwargs.get('year')
-        self.genres = kwargs.get('genres', [])
-        self.poster_path = kwargs.get('poster_path')
-        self.overview = kwargs.get('overview')
-        self.backdrop_path = kwargs.get('backdrop_path')
-        self.vote_average = kwargs.get('vote_average')
-        self.release_date = kwargs.get('release_date')
-        self.seasons = kwargs.get('seasons')
-        self.episodes = kwargs.get('episodes')
-        self.chapters = kwargs.get('chapters')
-        self.volumes = kwargs.get('volumes')
-        self.authors = kwargs.get('authors', [])
-        self.publisher = kwargs.get('publisher')
-        self.page_count = kwargs.get('page_count')
-        # Games-specific fields
-        self.platforms = kwargs.get('platforms', [])
-        self.developers = kwargs.get('developers', [])
-        self.publishers = kwargs.get('publishers', [])
-        self.release_year = kwargs.get('release_year')
-        self.rating = kwargs.get('rating')
-        self.game_modes = kwargs.get('game_modes', [])
-        self.created_at = datetime.utcnow()
-        self.updated_at = datetime.utcnow()
-
-class UserList:
-    def __init__(self, **kwargs):
-        self.id = str(uuid.uuid4())
-        self.user_id = kwargs.get('user_id', 'demo_user')
-        self.media_id = kwargs.get('media_id')
-        self.media_type = kwargs.get('media_type')
-        self.status = kwargs.get('status')
-        self.rating = kwargs.get('rating')
-        self.notes = kwargs.get('notes')
-        self.progress = kwargs.get('progress')
-        self.created_at = datetime.utcnow()
-        self.updated_at = datetime.utcnow()
-
-class UserPreferences:
-    def __init__(self, **kwargs):
-        self.id = str(uuid.uuid4())
-        self.user_id = kwargs.get('user_id', 'demo_user')
-        self.theme = kwargs.get('theme', 'dark')
-        self.language = kwargs.get('language', 'en')
-        self.notifications_enabled = kwargs.get('notifications_enabled', True)
-        self.created_at = datetime.utcnow()
-        self.updated_at = datetime.utcnow()
+# Database session dependency
+def get_db():
+    db = SessionLocal()
+    try:
+        yield db
+    finally:
+        db.close()
