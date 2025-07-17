@@ -663,7 +663,8 @@ const MediaPage = ({ mediaType, searchResults }) => {
       'tv': { title: 'TV Shows', icon: '📺', description: 'Keep up with your favorite TV series' },
       'anime': { title: 'Anime', icon: '🎌', description: 'Explore the world of anime' },
       'manga': { title: 'Manga', icon: '📚', description: 'Track your manga reading progress' },
-      'book': { title: 'Books', icon: '📖', description: 'Manage your reading list' }
+      'book': { title: 'Books', icon: '📖', description: 'Manage your reading list' },
+      'game': { title: 'Games', icon: '🎮', description: 'Track your gaming progress and achievements' }
     };
     return info[type] || { title: type, icon: '📄', description: 'Media content' };
   };
