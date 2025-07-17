@@ -56,6 +56,13 @@ class MediaItemResponse(BaseModel):
     authors: Optional[List[str]] = []
     publisher: Optional[str] = None
     page_count: Optional[int] = None
+    # Games-specific fields
+    platforms: Optional[List[str]] = []
+    developers: Optional[List[str]] = []
+    publishers: Optional[List[str]] = []
+    release_year: Optional[int] = None
+    rating: Optional[float] = None
+    game_modes: Optional[List[str]] = []
 
 class UserListItemCreate(BaseModel):
     media_id: str
