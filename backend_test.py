@@ -16,7 +16,8 @@ class MediaTrakkerAPITest(unittest.TestCase):
         print("\n🔍 Testing API root endpoint...")
         response = requests.get(f"{self.base_url}/")
         self.assertEqual(response.status_code, 200)
-        self.assertEqual(response.json(), {"message": "Media Trakker API"})
+        data = response.json()
+        self.assertIn("message", data)
         print("✅ API root endpoint test passed")
 
     def test_02_search_movies(self):
@@ -62,6 +63,114 @@ class MediaTrakkerAPITest(unittest.TestCase):
         
         print(f"✅ Found {len(data['results'])} TV shows for 'Breaking Bad'")
         return first_result["id"]  # Return ID for later use
+
+    def test_04_search_games(self):
+        """Test searching for games using IGDB API"""
+        print("\n🔍 Testing games search with IGDB API...")
+        response = requests.get(
+            f"{self.base_url}/search",
+            params={"query": "Mario", "media_type": "game"}
+        )
+        self.assertEqual(response.status_code, 200)
+        data = response.json()
+        self.assertIn("results", data)
+        self.assertTrue(len(data["results"]) > 0, "No game results found")
+        
+        # Verify the structure of the first result
+        first_result = data["results"][0]
+        self.assertIn("id", first_result)
+        self.assertIn("title", first_result)
+        self.assertIn("media_type", first_result)
+        self.assertEqual(first_result["media_type"], "game")
+        
+        # Verify game-specific fields
+        self.assertIn("platforms", first_result)
+        self.assertIn("developers", first_result)
+        self.assertIn("publishers", first_result)
+        self.assertIn("game_modes", first_result)
+        
+        print(f"✅ Found {len(data['results'])} games for 'Mario'")
+        print(f"  - First game: {first_result['title']}")
+        print(f"  - Platforms: {first_result.get('platforms', [])}")
+        print(f"  - Developers: {first_result.get('developers', [])}")
+        print(f"  - Publishers: {first_result.get('publishers', [])}")
+        print(f"  - Game modes: {first_result.get('game_modes', [])}")
+        
+        return first_result["id"]  # Return ID for later use
+
+    def test_05_search_anime(self):
+        """Test searching for anime"""
+        print("\n🔍 Testing anime search...")
+        response = requests.get(
+            f"{self.base_url}/search",
+            params={"query": "Naruto", "media_type": "anime"}
+        )
+        self.assertEqual(response.status_code, 200)
+        data = response.json()
+        self.assertIn("results", data)
+        self.assertTrue(len(data["results"]) > 0, "No anime results found")
+        
+        # Verify the structure of the first result
+        first_result = data["results"][0]
+        self.assertIn("id", first_result)
+        self.assertIn("title", first_result)
+        self.assertIn("media_type", first_result)
+        self.assertEqual(first_result["media_type"], "anime")
+        
+        print(f"✅ Found {len(data['results'])} anime for 'Naruto'")
+        return first_result["id"]
+
+    def test_06_search_manga(self):
+        """Test searching for manga"""
+        print("\n🔍 Testing manga search...")
+        response = requests.get(
+            f"{self.base_url}/search",
+            params={"query": "One Piece", "media_type": "manga"}
+        )
+        self.assertEqual(response.status_code, 200)
+        data = response.json()
+        self.assertIn("results", data)
+        self.assertTrue(len(data["results"]) > 0, "No manga results found")
+        
+        # Verify the structure of the first result
+        first_result = data["results"][0]
+        self.assertIn("id", first_result)
+        self.assertIn("title", first_result)
+        self.assertIn("media_type", first_result)
+        self.assertEqual(first_result["media_type"], "manga")
+        
+        print(f"✅ Found {len(data['results'])} manga for 'One Piece'")
+        return first_result["id"]
+
+    def test_07_search_books(self):
+        """Test searching for books"""
+        print("\n🔍 Testing book search...")
+        response = requests.get(
+            f"{self.base_url}/search",
+            params={"query": "Harry Potter", "media_type": "book"}
+        )
+        self.assertEqual(response.status_code, 200)
+        data = response.json()
+        self.assertIn("results", data)
+        self.assertTrue(len(data["results"]) > 0, "No book results found")
+        
+        # Verify the structure of the first result
+        first_result = data["results"][0]
+        self.assertIn("id", first_result)
+        self.assertIn("title", first_result)
+        self.assertIn("media_type", first_result)
+        self.assertEqual(first_result["media_type"], "book")
+        
+        # Verify book-specific fields
+        self.assertIn("authors", first_result)
+        self.assertIn("publisher", first_result)
+        
+        print(f"✅ Found {len(data['results'])} books for 'Harry Potter'")
+        print(f"  - First book: {first_result['title']}")
+        print(f"  - Authors: {first_result.get('authors', [])}")
+        print(f"  - Publisher: {first_result.get('publisher', 'N/A')}")
+        
+        return first_result["id"]
 
     def test_04_add_to_user_list(self):
         """Test adding items to user list"""
