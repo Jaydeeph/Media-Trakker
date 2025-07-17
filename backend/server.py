@@ -232,10 +232,9 @@ async def search_igdb_games(query: str, page: int = 1):
             logging.error(f"IGDB Games API error: {str(e)}")
             return []
 
-# Helper functions to create MediaItem objects and cache them in MongoDB
-async def create_media_item_from_tmdb_movie(movie_data):
+# Helper functions to create MediaItem objects and cache them in PostgreSQL
+def create_media_item_from_tmdb_movie(movie_data, db: Session):
     media_data = {
-        "_id": str(uuid.uuid4()),
         "external_id": str(movie_data["id"]),
         "title": movie_data["title"],
         "media_type": "movie",
@@ -245,26 +244,26 @@ async def create_media_item_from_tmdb_movie(movie_data):
         "overview": movie_data.get("overview"),
         "backdrop_path": f"{TMDB_IMAGE_BASE_URL}{movie_data['backdrop_path']}" if movie_data.get("backdrop_path") else None,
         "vote_average": movie_data.get("vote_average"),
-        "release_date": movie_data.get("release_date"),
-        "created_at": datetime.utcnow(),
-        "updated_at": datetime.utcnow()
+        "release_date": movie_data.get("release_date")
     }
     
     # Check if already exists
-    existing = await media_items_collection.find_one({
-        "external_id": media_data["external_id"],
-        "media_type": "movie"
-    })
+    existing = db.query(MediaItem).filter(
+        MediaItem.external_id == media_data["external_id"],
+        MediaItem.media_type == "movie"
+    ).first()
     
     if existing:
         return existing
     
-    await media_items_collection.insert_one(media_data)
-    return media_data
+    media_item = MediaItem(**media_data)
+    db.add(media_item)
+    db.commit()
+    db.refresh(media_item)
+    return media_item
 
-async def create_media_item_from_tmdb_tv(tv_data):
+def create_media_item_from_tmdb_tv(tv_data, db: Session):
     media_data = {
-        "_id": str(uuid.uuid4()),
         "external_id": str(tv_data["id"]),
         "title": tv_data.get("name", tv_data.get("original_name")),
         "media_type": "tv",
@@ -276,30 +275,30 @@ async def create_media_item_from_tmdb_tv(tv_data):
         "vote_average": tv_data.get("vote_average"),
         "release_date": tv_data.get("first_air_date"),
         "seasons": tv_data.get("number_of_seasons"),
-        "episodes": tv_data.get("number_of_episodes"),
-        "created_at": datetime.utcnow(),
-        "updated_at": datetime.utcnow()
+        "episodes": tv_data.get("number_of_episodes")
     }
     
-    existing = await media_items_collection.find_one({
-        "external_id": media_data["external_id"],
-        "media_type": "tv"
-    })
+    existing = db.query(MediaItem).filter(
+        MediaItem.external_id == media_data["external_id"],
+        MediaItem.media_type == "tv"
+    ).first()
     
     if existing:
         return existing
     
-    await media_items_collection.insert_one(media_data)
-    return media_data
+    media_item = MediaItem(**media_data)
+    db.add(media_item)
+    db.commit()
+    db.refresh(media_item)
+    return media_item
 
-async def create_media_item_from_anilist(item_data, media_type):
+def create_media_item_from_anilist(item_data, media_type, db: Session):
     try:
         title = item_data["title"]["english"] or item_data["title"]["romaji"] or item_data["title"]["native"]
         start_date = item_data.get("startDate")
         year = start_date.get("year") if start_date else None
         
         media_data = {
-            "_id": str(uuid.uuid4()),
             "external_id": str(item_data["id"]),
             "title": title,
             "media_type": media_type.lower(),
@@ -310,26 +309,27 @@ async def create_media_item_from_anilist(item_data, media_type):
             "vote_average": item_data.get("averageScore", 0) / 10 if item_data.get("averageScore") else None,
             "episodes": item_data.get("episodes"),
             "chapters": item_data.get("chapters"),
-            "volumes": item_data.get("volumes"),
-            "created_at": datetime.utcnow(),
-            "updated_at": datetime.utcnow()
+            "volumes": item_data.get("volumes")
         }
         
-        existing = await media_items_collection.find_one({
-            "external_id": media_data["external_id"],
-            "media_type": media_type.lower()
-        })
+        existing = db.query(MediaItem).filter(
+            MediaItem.external_id == media_data["external_id"],
+            MediaItem.media_type == media_type.lower()
+        ).first()
         
         if existing:
             return existing
         
-        await media_items_collection.insert_one(media_data)
-        return media_data
+        media_item = MediaItem(**media_data)
+        db.add(media_item)
+        db.commit()
+        db.refresh(media_item)
+        return media_item
     except Exception as e:
         logging.error(f"Error creating AniList media item: {str(e)}")
         return None
 
-async def create_media_item_from_book(book_data):
+def create_media_item_from_book(book_data, db: Session):
     try:
         volume_info = book_data.get("volumeInfo", {})
         image_links = volume_info.get("imageLinks", {})
@@ -344,7 +344,6 @@ async def create_media_item_from_book(book_data):
                 pass
         
         media_data = {
-            "_id": str(uuid.uuid4()),
             "external_id": book_data["id"],
             "title": volume_info.get("title", ""),
             "media_type": "book",
@@ -355,26 +354,27 @@ async def create_media_item_from_book(book_data):
             "vote_average": volume_info.get("averageRating"),
             "authors": volume_info.get("authors", []),
             "publisher": volume_info.get("publisher"),
-            "page_count": volume_info.get("pageCount"),
-            "created_at": datetime.utcnow(),
-            "updated_at": datetime.utcnow()
+            "page_count": volume_info.get("pageCount")
         }
         
-        existing = await media_items_collection.find_one({
-            "external_id": media_data["external_id"],
-            "media_type": "book"
-        })
+        existing = db.query(MediaItem).filter(
+            MediaItem.external_id == media_data["external_id"],
+            MediaItem.media_type == "book"
+        ).first()
         
         if existing:
             return existing
         
-        await media_items_collection.insert_one(media_data)
-        return media_data
+        media_item = MediaItem(**media_data)
+        db.add(media_item)
+        db.commit()
+        db.refresh(media_item)
+        return media_item
     except Exception as e:
         logging.error(f"Error creating book media item: {str(e)}")
         return None
 
-async def create_media_item_from_igdb_game(game_data):
+def create_media_item_from_igdb_game(game_data, db: Session):
     try:
         # Extract basic info
         external_id = str(game_data["id"])
@@ -422,7 +422,6 @@ async def create_media_item_from_igdb_game(game_data):
             game_modes = [mode.get("name", "") for mode in game_data["game_modes"]]
         
         media_data = {
-            "_id": str(uuid.uuid4()),
             "external_id": external_id,
             "title": title,
             "media_type": "game",
@@ -436,21 +435,22 @@ async def create_media_item_from_igdb_game(game_data):
             "publishers": publishers,
             "release_year": release_year,
             "rating": rating,
-            "game_modes": game_modes,
-            "created_at": datetime.utcnow(),
-            "updated_at": datetime.utcnow()
+            "game_modes": game_modes
         }
         
-        existing = await media_items_collection.find_one({
-            "external_id": media_data["external_id"],
-            "media_type": "game"
-        })
+        existing = db.query(MediaItem).filter(
+            MediaItem.external_id == media_data["external_id"],
+            MediaItem.media_type == "game"
+        ).first()
         
         if existing:
             return existing
         
-        await media_items_collection.insert_one(media_data)
-        return media_data
+        media_item = MediaItem(**media_data)
+        db.add(media_item)
+        db.commit()
+        db.refresh(media_item)
+        return media_item
     except Exception as e:
         logging.error(f"Error creating game media item: {str(e)}")
         return None
