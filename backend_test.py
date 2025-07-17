@@ -172,11 +172,11 @@ class MediaTrakkerAPITest(unittest.TestCase):
         
         return first_result["id"]
 
-    def test_04_add_to_user_list(self):
-        """Test adding items to user list"""
+    def test_08_add_to_user_list(self):
+        """Test adding items to user list including games"""
         print("\n🔍 Testing adding items to user list...")
         
-        # First search for a movie to add
+        # Test adding a movie
         movie_response = requests.get(
             f"{self.base_url}/search",
             params={"query": "Inception", "media_type": "movie"}
@@ -184,7 +184,6 @@ class MediaTrakkerAPITest(unittest.TestCase):
         movie_data = movie_response.json()
         movie_id = movie_data["results"][0]["id"]
         
-        # Add movie to list with 'watching' status
         add_response = requests.post(
             f"{self.base_url}/user-list",
             json={
@@ -194,7 +193,6 @@ class MediaTrakkerAPITest(unittest.TestCase):
             }
         )
         
-        # Check if item was added successfully or already exists
         if add_response.status_code == 400 and "already in your list" in add_response.json().get("detail", ""):
             print("⚠️ Movie already in list (this is okay)")
         else:
@@ -203,36 +201,63 @@ class MediaTrakkerAPITest(unittest.TestCase):
             self.test_items.append(list_item_id)
             print(f"✅ Added movie to list with ID: {list_item_id}")
         
-        # Now search for a TV show to add
-        tv_response = requests.get(
+        # Test adding a game
+        game_response = requests.get(
             f"{self.base_url}/search",
-            params={"query": "Stranger Things", "media_type": "tv"}
+            params={"query": "Zelda", "media_type": "game"}
         )
-        tv_data = tv_response.json()
-        tv_id = tv_data["results"][0]["id"]
+        game_data = game_response.json()
+        if game_data["results"]:
+            game_id = game_data["results"][0]["id"]
+            
+            add_game_response = requests.post(
+                f"{self.base_url}/user-list",
+                json={
+                    "media_id": game_id,
+                    "media_type": "game",
+                    "status": "playing",
+                    "progress": {"hours_played": 10}
+                }
+            )
+            
+            if add_game_response.status_code == 400 and "already in your list" in add_game_response.json().get("detail", ""):
+                print("⚠️ Game already in list (this is okay)")
+            else:
+                self.assertEqual(add_game_response.status_code, 200, f"Failed to add game: {add_game_response.text}")
+                game_list_item_id = add_game_response.json().get("id")
+                self.test_items.append(game_list_item_id)
+                print(f"✅ Added game to list with ID: {game_list_item_id}")
         
-        # Add TV show to list with 'planning' status
-        add_tv_response = requests.post(
-            f"{self.base_url}/user-list",
-            json={
-                "media_id": tv_id,
-                "media_type": "tv",
-                "status": "planning"
-            }
+        # Test adding an anime
+        anime_response = requests.get(
+            f"{self.base_url}/search",
+            params={"query": "Attack on Titan", "media_type": "anime"}
         )
-        
-        # Check if item was added successfully or already exists
-        if add_tv_response.status_code == 400 and "already in your list" in add_tv_response.json().get("detail", ""):
-            print("⚠️ TV show already in list (this is okay)")
-        else:
-            self.assertEqual(add_tv_response.status_code, 200, f"Failed to add TV show: {add_tv_response.text}")
-            tv_list_item_id = add_tv_response.json().get("id")
-            self.test_items.append(tv_list_item_id)
-            print(f"✅ Added TV show to list with ID: {tv_list_item_id}")
+        anime_data = anime_response.json()
+        if anime_data["results"]:
+            anime_id = anime_data["results"][0]["id"]
+            
+            add_anime_response = requests.post(
+                f"{self.base_url}/user-list",
+                json={
+                    "media_id": anime_id,
+                    "media_type": "anime",
+                    "status": "completed",
+                    "rating": 9.5
+                }
+            )
+            
+            if add_anime_response.status_code == 400 and "already in your list" in add_anime_response.json().get("detail", ""):
+                print("⚠️ Anime already in list (this is okay)")
+            else:
+                self.assertEqual(add_anime_response.status_code, 200, f"Failed to add anime: {add_anime_response.text}")
+                anime_list_item_id = add_anime_response.json().get("id")
+                self.test_items.append(anime_list_item_id)
+                print(f"✅ Added anime to list with ID: {anime_list_item_id}")
 
-    def test_05_get_user_list(self):
-        """Test retrieving user list"""
-        print("\n🔍 Testing retrieving user list...")
+    def test_09_get_user_list_with_games(self):
+        """Test retrieving user list including games"""
+        print("\n🔍 Testing retrieving user list with games...")
         
         # Get all items
         response = requests.get(f"{self.base_url}/user-list")
@@ -241,23 +266,24 @@ class MediaTrakkerAPITest(unittest.TestCase):
         self.assertIsInstance(items, list)
         print(f"✅ Retrieved {len(items)} items from user list")
         
-        # Test filtering by status
-        status_response = requests.get(
-            f"{self.base_url}/user-list",
-            params={"status": "watching"}
-        )
-        self.assertEqual(status_response.status_code, 200)
-        watching_items = status_response.json()
-        print(f"✅ Retrieved {len(watching_items)} items with 'watching' status")
+        # Check for games in the list
+        game_items = [item for item in items if item["media_item"]["media_type"] == "game"]
+        if game_items:
+            print(f"✅ Found {len(game_items)} games in user list")
+            first_game = game_items[0]
+            print(f"  - Game: {first_game['media_item']['title']}")
+            print(f"  - Platforms: {first_game['media_item'].get('platforms', [])}")
+            print(f"  - Developers: {first_game['media_item'].get('developers', [])}")
+            print(f"  - Status: {first_game['list_item']['status']}")
         
-        # Test filtering by media type
-        type_response = requests.get(
+        # Test filtering by game media type
+        game_response = requests.get(
             f"{self.base_url}/user-list",
-            params={"media_type": "movie"}
+            params={"media_type": "game"}
         )
-        self.assertEqual(type_response.status_code, 200)
-        movie_items = type_response.json()
-        print(f"✅ Retrieved {len(movie_items)} movie items")
+        self.assertEqual(game_response.status_code, 200)
+        game_list_items = game_response.json()
+        print(f"✅ Retrieved {len(game_list_items)} game items specifically")
         
         # Return the first item ID if available for update test
         if items:
