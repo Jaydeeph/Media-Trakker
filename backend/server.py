@@ -461,7 +461,7 @@ async def root():
     return {"message": "Media Trakker API - Full PostgreSQL"}
 
 @api_router.get("/search")
-async def search_media(query: str = Query(...), media_type: str = Query(...), page: int = Query(1)):
+async def search_media(query: str = Query(...), media_type: str = Query(...), page: int = Query(1), db: Session = Depends(get_db)):
     if not query.strip():
         raise HTTPException(status_code=400, detail="Search query cannot be empty")
     
@@ -470,39 +470,39 @@ async def search_media(query: str = Query(...), media_type: str = Query(...), pa
         raise HTTPException(status_code=400, detail=f"Media type must be one of: {', '.join(valid_media_types)}")
     
     try:
-        # Check MongoDB cache first
-        cached_results = await media_items_collection.find({
-            "title": {"$regex": query, "$options": "i"},
-            "media_type": media_type
-        }).limit(10).to_list(length=10)
+        # Check PostgreSQL cache first
+        cached_results = db.query(MediaItem).filter(
+            MediaItem.title.ilike(f"%{query}%"),
+            MediaItem.media_type == media_type
+        ).limit(10).all()
         
         if cached_results and len(cached_results) >= 5:
             return {
                 "results": [MediaItemResponse(
-                    id=item["_id"],
-                    external_id=item["external_id"],
-                    title=item["title"],
-                    media_type=item["media_type"],
-                    year=item.get("year"),
-                    genres=item.get("genres", []),
-                    poster_path=item.get("poster_path"),
-                    overview=item.get("overview"),
-                    backdrop_path=item.get("backdrop_path"),
-                    vote_average=item.get("vote_average"),
-                    release_date=item.get("release_date"),
-                    seasons=item.get("seasons"),
-                    episodes=item.get("episodes"),
-                    chapters=item.get("chapters"),
-                    volumes=item.get("volumes"),
-                    authors=item.get("authors", []),
-                    publisher=item.get("publisher"),
-                    page_count=item.get("page_count"),
-                    platforms=item.get("platforms", []),
-                    developers=item.get("developers", []),
-                    publishers=item.get("publishers", []),
-                    release_year=item.get("release_year"),
-                    rating=item.get("rating"),
-                    game_modes=item.get("game_modes", [])
+                    id=item.id,
+                    external_id=item.external_id,
+                    title=item.title,
+                    media_type=item.media_type,
+                    year=item.year,
+                    genres=item.genres or [],
+                    poster_path=item.poster_path,
+                    overview=item.overview,
+                    backdrop_path=item.backdrop_path,
+                    vote_average=item.vote_average,
+                    release_date=item.release_date,
+                    seasons=item.seasons,
+                    episodes=item.episodes,
+                    chapters=item.chapters,
+                    volumes=item.volumes,
+                    authors=item.authors or [],
+                    publisher=item.publisher,
+                    page_count=item.page_count,
+                    platforms=item.platforms or [],
+                    developers=item.developers or [],
+                    publishers=item.publishers or [],
+                    release_year=item.release_year,
+                    rating=item.rating,
+                    game_modes=item.game_modes or []
                 ) for item in cached_results],
                 "source": "cache"
             }
@@ -514,103 +514,103 @@ async def search_media(query: str = Query(...), media_type: str = Query(...), pa
             tmdb_results = await search_tmdb_movies(query, page)
             for item in tmdb_results.get("results", []):
                 detailed_data = await get_movie_details(item["id"])
-                media_item = await create_media_item_from_tmdb_movie(detailed_data)
+                media_item = create_media_item_from_tmdb_movie(detailed_data, db)
                 if media_item:
                     results.append(MediaItemResponse(
-                        id=media_item["_id"],
-                        external_id=media_item["external_id"],
-                        title=media_item["title"],
-                        media_type=media_item["media_type"],
-                        year=media_item.get("year"),
-                        genres=media_item.get("genres", []),
-                        poster_path=media_item.get("poster_path"),
-                        overview=media_item.get("overview"),
-                        vote_average=media_item.get("vote_average"),
-                        release_date=media_item.get("release_date")
+                        id=media_item.id,
+                        external_id=media_item.external_id,
+                        title=media_item.title,
+                        media_type=media_item.media_type,
+                        year=media_item.year,
+                        genres=media_item.genres or [],
+                        poster_path=media_item.poster_path,
+                        overview=media_item.overview,
+                        vote_average=media_item.vote_average,
+                        release_date=media_item.release_date
                     ))
         
         elif media_type == "tv":
             tmdb_results = await search_tmdb_tv_shows(query, page)
             for item in tmdb_results.get("results", []):
                 detailed_data = await get_tv_details(item["id"])
-                media_item = await create_media_item_from_tmdb_tv(detailed_data)
+                media_item = create_media_item_from_tmdb_tv(detailed_data, db)
                 if media_item:
                     results.append(MediaItemResponse(
-                        id=media_item["_id"],
-                        external_id=media_item["external_id"],
-                        title=media_item["title"],
-                        media_type=media_item["media_type"],
-                        year=media_item.get("year"),
-                        genres=media_item.get("genres", []),
-                        poster_path=media_item.get("poster_path"),
-                        overview=media_item.get("overview"),
-                        vote_average=media_item.get("vote_average"),
-                        seasons=media_item.get("seasons"),
-                        episodes=media_item.get("episodes")
+                        id=media_item.id,
+                        external_id=media_item.external_id,
+                        title=media_item.title,
+                        media_type=media_item.media_type,
+                        year=media_item.year,
+                        genres=media_item.genres or [],
+                        poster_path=media_item.poster_path,
+                        overview=media_item.overview,
+                        vote_average=media_item.vote_average,
+                        seasons=media_item.seasons,
+                        episodes=media_item.episodes
                     ))
         
         elif media_type in ["anime", "manga"]:
             anilist_results = await search_anilist(query, media_type, page)
             if anilist_results.get("data") and anilist_results["data"].get("Page"):
                 for item in anilist_results["data"]["Page"]["media"]:
-                    media_item = await create_media_item_from_anilist(item, media_type)
+                    media_item = create_media_item_from_anilist(item, media_type, db)
                     if media_item:
                         results.append(MediaItemResponse(
-                            id=media_item["_id"],
-                            external_id=media_item["external_id"],
-                            title=media_item["title"],
-                            media_type=media_item["media_type"],
-                            year=media_item.get("year"),
-                            genres=media_item.get("genres", []),
-                            poster_path=media_item.get("poster_path"),
-                            overview=media_item.get("overview"),
-                            vote_average=media_item.get("vote_average"),
-                            episodes=media_item.get("episodes"),
-                            chapters=media_item.get("chapters"),
-                            volumes=media_item.get("volumes")
+                            id=media_item.id,
+                            external_id=media_item.external_id,
+                            title=media_item.title,
+                            media_type=media_item.media_type,
+                            year=media_item.year,
+                            genres=media_item.genres or [],
+                            poster_path=media_item.poster_path,
+                            overview=media_item.overview,
+                            vote_average=media_item.vote_average,
+                            episodes=media_item.episodes,
+                            chapters=media_item.chapters,
+                            volumes=media_item.volumes
                         ))
         
         elif media_type == "book":
             books_results = await search_google_books(query, page)
             for item in books_results.get("items", []):
-                media_item = await create_media_item_from_book(item)
+                media_item = create_media_item_from_book(item, db)
                 if media_item:
                     results.append(MediaItemResponse(
-                        id=media_item["_id"],
-                        external_id=media_item["external_id"],
-                        title=media_item["title"],
-                        media_type=media_item["media_type"],
-                        year=media_item.get("year"),
-                        genres=media_item.get("genres", []),
-                        poster_path=media_item.get("poster_path"),
-                        overview=media_item.get("overview"),
-                        vote_average=media_item.get("vote_average"),
-                        authors=media_item.get("authors", []),
-                        publisher=media_item.get("publisher"),
-                        page_count=media_item.get("page_count")
+                        id=media_item.id,
+                        external_id=media_item.external_id,
+                        title=media_item.title,
+                        media_type=media_item.media_type,
+                        year=media_item.year,
+                        genres=media_item.genres or [],
+                        poster_path=media_item.poster_path,
+                        overview=media_item.overview,
+                        vote_average=media_item.vote_average,
+                        authors=media_item.authors or [],
+                        publisher=media_item.publisher,
+                        page_count=media_item.page_count
                     ))
         
         elif media_type == "game":
             games_results = await search_igdb_games(query, page)
             for item in games_results:
-                media_item = await create_media_item_from_igdb_game(item)
+                media_item = create_media_item_from_igdb_game(item, db)
                 if media_item:
                     results.append(MediaItemResponse(
-                        id=media_item["_id"],
-                        external_id=media_item["external_id"],
-                        title=media_item["title"],
-                        media_type=media_item["media_type"],
-                        year=media_item.get("year"),
-                        genres=media_item.get("genres", []),
-                        poster_path=media_item.get("poster_path"),
-                        overview=media_item.get("overview"),
-                        vote_average=media_item.get("vote_average"),
-                        platforms=media_item.get("platforms", []),
-                        developers=media_item.get("developers", []),
-                        publishers=media_item.get("publishers", []),
-                        release_year=media_item.get("release_year"),
-                        rating=media_item.get("rating"),
-                        game_modes=media_item.get("game_modes", [])
+                        id=media_item.id,
+                        external_id=media_item.external_id,
+                        title=media_item.title,
+                        media_type=media_item.media_type,
+                        year=media_item.year,
+                        genres=media_item.genres or [],
+                        poster_path=media_item.poster_path,
+                        overview=media_item.overview,
+                        vote_average=media_item.vote_average,
+                        platforms=media_item.platforms or [],
+                        developers=media_item.developers or [],
+                        publishers=media_item.publishers or [],
+                        release_year=media_item.release_year,
+                        rating=media_item.rating,
+                        game_modes=media_item.game_modes or []
                     ))
         
         return {"results": results, "source": "external"}
