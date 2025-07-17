@@ -568,7 +568,7 @@ const ProfilePage = ({ userListItems, onUpdateItem, onRemoveItem }) => {
             <span className="text-3xl">👤</span>
           </div>
           <h2 className="text-2xl font-semibold mb-2">Your Lists Are Empty</h2>
-          <p className={`${theme === 'dark' ? 'text-gray-400' : 'text-gray-600'} mb-6`}>Start adding movies, TV shows, anime, manga, and books to see them here!</p>
+          <p className={`${theme === 'dark' ? 'text-gray-400' : 'text-gray-600'} mb-6`}>Start adding movies, TV shows, anime, manga, books, and games to see them here!</p>
           <button className="px-6 py-3 bg-red-600 text-white rounded-xl hover:bg-red-700 transition-colors font-medium">
             Explore Media
           </button>
