@@ -31,6 +31,10 @@ TMDB_BASE_URL = "https://api.themoviedb.org/3"
 TMDB_IMAGE_BASE_URL = "https://image.tmdb.org/t/p/w500"
 ANILIST_API_URL = "https://graphql.anilist.co"
 GOOGLE_BOOKS_API_URL = "https://www.googleapis.com/books/v1/volumes"
+IGDB_CLIENT_ID = os.environ.get('IGDB_CLIENT_ID')
+IGDB_CLIENT_SECRET = os.environ.get('IGDB_CLIENT_SECRET')
+IGDB_BASE_URL = "https://api.igdb.com/v4"
+TWITCH_AUTH_URL = "https://id.twitch.tv/oauth2/token"
 
 # Pydantic Models
 class MediaItemResponse(BaseModel):
