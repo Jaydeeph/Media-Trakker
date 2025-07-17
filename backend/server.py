@@ -164,6 +164,70 @@ async def search_google_books(query: str, page: int = 1):
             logging.error(f"Google Books API error: {str(e)}")
             return {"items": []}
 
+# IGDB API Functions
+async def get_igdb_access_token():
+    """Get access token for IGDB API"""
+    async with httpx.AsyncClient() as client:
+        try:
+            response = await client.post(
+                TWITCH_AUTH_URL,
+                params={
+                    "client_id": IGDB_CLIENT_ID,
+                    "client_secret": IGDB_CLIENT_SECRET,
+                    "grant_type": "client_credentials"
+                }
+            )
+            if response.status_code == 200:
+                return response.json()["access_token"]
+            else:
+                logging.error(f"IGDB Auth error: {response.status_code}")
+                return None
+        except Exception as e:
+            logging.error(f"IGDB Auth error: {str(e)}")
+            return None
+
+async def search_igdb_games(query: str, page: int = 1):
+    """Search games using IGDB API"""
+    token = await get_igdb_access_token()
+    if not token:
+        return []
+    
+    offset = (page - 1) * 10
+    
+    # IGDB query to get games with all relevant fields
+    igdb_query = f"""
+    fields name, summary, cover.url, cover.image_id, platforms.name, 
+           involved_companies.company.name, involved_companies.developer,
+           involved_companies.publisher, first_release_date, rating, 
+           game_modes.name, genres.name, release_dates.human, 
+           release_dates.y, screenshots.image_id;
+    search "{query}";
+    limit 10;
+    offset {offset};
+    """
+    
+    headers = {
+        "Client-ID": IGDB_CLIENT_ID,
+        "Authorization": f"Bearer {token}",
+        "Content-Type": "text/plain"
+    }
+    
+    async with httpx.AsyncClient() as client:
+        try:
+            response = await client.post(
+                f"{IGDB_BASE_URL}/games",
+                headers=headers,
+                content=igdb_query
+            )
+            if response.status_code == 200:
+                return response.json()
+            else:
+                logging.error(f"IGDB Games API error: {response.status_code}")
+                return []
+        except Exception as e:
+            logging.error(f"IGDB Games API error: {str(e)}")
+            return []
+
 # Helper functions to create MediaItem objects and cache them in PostgreSQL
 def create_media_item_from_tmdb_movie(movie_data, db: Session):
     media_data = {
