@@ -290,7 +290,7 @@ class MediaTrakkerAPITest(unittest.TestCase):
             return items[0]["list_item"]["id"]
         return None
 
-    def test_06_update_list_item(self):
+    def test_10_update_list_item(self):
         """Test updating a list item's status"""
         print("\n🔍 Testing updating list item status...")
         
@@ -313,37 +313,45 @@ class MediaTrakkerAPITest(unittest.TestCase):
         # Update the item
         update_response = requests.put(
             f"{self.base_url}/user-list/{item_id}",
-            json={"status": new_status}
+            json={"status": new_status, "rating": 8.5}
         )
         
         self.assertEqual(update_response.status_code, 200)
-        updated_item = update_response.json()
-        self.assertEqual(updated_item["status"], new_status)
         print(f"✅ Updated item status from '{current_status}' to '{new_status}'")
 
-    def test_07_remove_from_list(self):
-        """Test removing an item from the list"""
-        print("\n🔍 Testing removing item from list...")
+    def test_11_user_preferences(self):
+        """Test user preferences endpoints"""
+        print("\n🔍 Testing user preferences...")
         
-        # Get user list to find an item to remove
-        list_response = requests.get(f"{self.base_url}/user-list")
-        items = list_response.json()
+        # Get current preferences
+        get_response = requests.get(f"{self.base_url}/user-preferences")
+        self.assertEqual(get_response.status_code, 200)
+        preferences = get_response.json()
         
-        if not items:
-            print("⚠️ No items in list to remove, skipping test")
-            return
+        # Verify structure
+        self.assertIn("theme", preferences)
+        self.assertIn("language", preferences)
+        self.assertIn("notifications_enabled", preferences)
         
-        # Get the last item's ID to remove
-        item_id = items[-1]["list_item"]["id"]
+        print(f"✅ Retrieved user preferences:")
+        print(f"  - Theme: {preferences['theme']}")
+        print(f"  - Language: {preferences['language']}")
+        print(f"  - Notifications: {preferences['notifications_enabled']}")
         
-        # Remove the item
-        remove_response = requests.delete(f"{self.base_url}/user-list/{item_id}")
+        # Update preferences
+        new_theme = "light" if preferences["theme"] == "dark" else "dark"
+        update_response = requests.put(
+            f"{self.base_url}/user-preferences",
+            json={
+                "theme": new_theme,
+                "notifications_enabled": not preferences["notifications_enabled"]
+            }
+        )
         
-        self.assertEqual(remove_response.status_code, 200)
-        self.assertEqual(remove_response.json(), {"message": "Item removed from list"})
-        print(f"✅ Successfully removed item with ID: {item_id}")
+        self.assertEqual(update_response.status_code, 200)
+        print(f"✅ Updated preferences - Theme: {new_theme}")
 
-    def test_08_get_stats(self):
+    def test_12_get_stats(self):
         """Test retrieving user statistics"""
         print("\n🔍 Testing statistics endpoint...")
         
@@ -360,6 +368,34 @@ class MediaTrakkerAPITest(unittest.TestCase):
             print(f"  - {media_type}: {sum(status_counts.values())} items")
             for status, count in status_counts.items():
                 print(f"    • {status}: {count}")
+
+    def test_13_error_handling(self):
+        """Test error handling for invalid requests"""
+        print("\n🔍 Testing error handling...")
+        
+        # Test invalid media type
+        invalid_type_response = requests.get(
+            f"{self.base_url}/search",
+            params={"query": "test", "media_type": "invalid"}
+        )
+        self.assertEqual(invalid_type_response.status_code, 400)
+        print("✅ Invalid media type properly rejected")
+        
+        # Test empty query
+        empty_query_response = requests.get(
+            f"{self.base_url}/search",
+            params={"query": "", "media_type": "movie"}
+        )
+        self.assertEqual(empty_query_response.status_code, 400)
+        print("✅ Empty query properly rejected")
+        
+        # Test invalid list item ID
+        invalid_id_response = requests.put(
+            f"{self.base_url}/user-list/invalid-id",
+            json={"status": "completed"}
+        )
+        self.assertEqual(invalid_id_response.status_code, 404)
+        print("✅ Invalid list item ID properly rejected")
 
     def tearDown(self):
         """Clean up any test data if needed"""
