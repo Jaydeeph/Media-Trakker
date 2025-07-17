@@ -146,7 +146,8 @@ const TopNavigation = ({ currentPage, onSearch, loading }) => {
       'tv': { title: 'TV Shows', placeholder: 'Search for TV shows...', icon: '📺' },
       'anime': { title: 'Anime', placeholder: 'Search for anime...', icon: '🎌' },
       'manga': { title: 'Manga', placeholder: 'Search for manga...', icon: '📚' },
-      'books': { title: 'Books', placeholder: 'Search for books...', icon: '📖' }
+      'books': { title: 'Books', placeholder: 'Search for books...', icon: '📖' },
+      'games': { title: 'Games', placeholder: 'Search for games...', icon: '🎮' }
     };
     return pageInfo[page] || null;
   };
