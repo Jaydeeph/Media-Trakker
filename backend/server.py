@@ -17,7 +17,7 @@ ROOT_DIR = Path(__file__).parent
 load_dotenv(ROOT_DIR / '.env')
 
 # Create MongoDB collections (no-op for MongoDB)
-create_tables()
+# create_tables() - MongoDB doesn't need table creation
 
 # Create the main app without a prefix
 app = FastAPI()
