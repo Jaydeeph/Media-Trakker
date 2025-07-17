@@ -492,7 +492,13 @@ async def search_media(query: str = Query(...), media_type: str = Query(...), pa
                     volumes=item.volumes,
                     authors=item.authors or [],
                     publisher=item.publisher,
-                    page_count=item.page_count
+                    page_count=item.page_count,
+                    platforms=item.platforms or [],
+                    developers=item.developers or [],
+                    publishers=item.publishers or [],
+                    release_year=item.release_year,
+                    rating=item.rating,
+                    game_modes=item.game_modes or []
                 ) for item in cached_results],
                 "source": "cache"
             }
