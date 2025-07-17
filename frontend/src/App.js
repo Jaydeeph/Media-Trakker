@@ -699,6 +699,33 @@ const MediaPage = ({ mediaType, searchResults }) => {
                         ))}
                       </div>
                     )}
+                    {/* Game-specific information */}
+                    {media.platforms && media.platforms.length > 0 && (
+                      <div className="mb-3">
+                        <p className={`text-sm font-medium ${theme === 'dark' ? 'text-gray-300' : 'text-gray-700'} mb-1`}>Platforms:</p>
+                        <div className="flex flex-wrap gap-2">
+                          {media.platforms.slice(0, 4).map(platform => (
+                            <span key={platform} className={`px-2 py-1 ${theme === 'dark' ? 'bg-blue-900 text-blue-200' : 'bg-blue-100 text-blue-700'} rounded text-xs`}>
+                              {platform}
+                            </span>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                    {media.developers && media.developers.length > 0 && (
+                      <div className="mb-3">
+                        <p className={`text-sm ${theme === 'dark' ? 'text-gray-400' : 'text-gray-600'}`}>
+                          <span className="font-medium">Developer:</span> {media.developers.join(', ')}
+                        </p>
+                      </div>
+                    )}
+                    {media.publishers && media.publishers.length > 0 && (
+                      <div className="mb-3">
+                        <p className={`text-sm ${theme === 'dark' ? 'text-gray-400' : 'text-gray-600'}`}>
+                          <span className="font-medium">Publisher:</span> {media.publishers.join(', ')}
+                        </p>
+                      </div>
+                    )}
                     {media.vote_average && (
                       <p className="text-sm text-yellow-600 mb-4 flex items-center gap-1">
                         <span>⭐</span>
