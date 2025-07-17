@@ -801,7 +801,8 @@ function App() {
       case 'anime':
       case 'manga':
       case 'books':
-        return <MediaPage mediaType={currentPage === 'books' ? 'book' : currentPage} searchResults={searchResults} />;
+      case 'games':
+        return <MediaPage mediaType={currentPage === 'books' ? 'book' : currentPage === 'games' ? 'game' : currentPage} searchResults={searchResults} />;
       case 'profile':
         return (
           <ProfilePage
