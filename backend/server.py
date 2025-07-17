@@ -616,138 +616,143 @@ async def search_media(query: str = Query(...), media_type: str = Query(...), pa
         raise HTTPException(status_code=500, detail="An error occurred while searching")
 
 @api_router.post("/user-list")
-async def add_to_user_list(item: UserListItemCreate, db: Session = Depends(get_db)):
+async def add_to_user_list(item: UserListItemCreate):
     # Check if item already exists
-    existing_item = db.query(UserList).filter(
-        UserList.user_id == "demo_user",
-        UserList.media_id == item.media_id
-    ).first()
+    existing_item = await user_lists_collection.find_one({
+        "user_id": "demo_user",
+        "media_id": item.media_id
+    })
     
     if existing_item:
         raise HTTPException(status_code=400, detail="Item already in your list")
     
     # Create new list item
-    db_item = UserList(
-        user_id="demo_user",
-        media_id=item.media_id,
-        media_type=item.media_type,
-        status=item.status,
-        rating=item.rating,
-        notes=item.notes,
-        progress=item.progress
-    )
+    list_item_data = {
+        "_id": str(uuid.uuid4()),
+        "user_id": "demo_user",
+        "media_id": item.media_id,
+        "media_type": item.media_type,
+        "status": item.status,
+        "rating": item.rating,
+        "notes": item.notes,
+        "progress": item.progress,
+        "created_at": datetime.utcnow(),
+        "updated_at": datetime.utcnow()
+    }
     
-    db.add(db_item)
-    db.commit()
-    db.refresh(db_item)
+    await user_lists_collection.insert_one(list_item_data)
     
-    return {"message": "Item added to list", "id": db_item.id}
+    return {"message": "Item added to list", "id": list_item_data["_id"]}
 
 @api_router.get("/user-list")
-async def get_user_list(status: Optional[str] = None, media_type: Optional[str] = None, db: Session = Depends(get_db)):
-    query = db.query(UserList).filter(UserList.user_id == "demo_user")
+async def get_user_list(status: Optional[str] = None, media_type: Optional[str] = None):
+    query = {"user_id": "demo_user"}
     
     if status:
-        query = query.filter(UserList.status == status)
+        query["status"] = status
     if media_type:
-        query = query.filter(UserList.media_type == media_type)
+        query["media_type"] = media_type
     
-    list_items = query.all()
+    list_items = await user_lists_collection.find(query).to_list(length=None)
     
-    # Enrich with media details from PostgreSQL
+    # Enrich with media details from MongoDB
     enriched_items = []
     for item in list_items:
-        media_item = db.query(MediaItem).filter(MediaItem.id == item.media_id).first()
+        media_item = await media_items_collection.find_one({"_id": item["media_id"]})
         if media_item:
             enriched_items.append({
                 "list_item": {
-                    "id": item.id,
-                    "user_id": item.user_id,
-                    "media_id": item.media_id,
-                    "media_type": item.media_type,
-                    "status": item.status,
-                    "rating": item.rating,
-                    "notes": item.notes,
-                    "progress": item.progress,
-                    "created_at": item.created_at.isoformat(),
-                    "updated_at": item.updated_at.isoformat()
+                    "id": item["_id"],
+                    "user_id": item["user_id"],
+                    "media_id": item["media_id"],
+                    "media_type": item["media_type"],
+                    "status": item["status"],
+                    "rating": item.get("rating"),
+                    "notes": item.get("notes"),
+                    "progress": item.get("progress"),
+                    "created_at": item["created_at"].isoformat(),
+                    "updated_at": item["updated_at"].isoformat()
                 },
                 "media_item": MediaItemResponse(
-                    id=media_item.id,
-                    external_id=media_item.external_id,
-                    title=media_item.title,
-                    media_type=media_item.media_type,
-                    year=media_item.year,
-                    genres=media_item.genres or [],
-                    poster_path=media_item.poster_path,
-                    overview=media_item.overview,
-                    backdrop_path=media_item.backdrop_path,
-                    vote_average=media_item.vote_average,
-                    release_date=media_item.release_date,
-                    seasons=media_item.seasons,
-                    episodes=media_item.episodes,
-                    chapters=media_item.chapters,
-                    volumes=media_item.volumes,
-                    authors=media_item.authors or [],
-                    publisher=media_item.publisher,
-                    page_count=media_item.page_count,
-                    platforms=media_item.platforms or [],
-                    developers=media_item.developers or [],
-                    publishers=media_item.publishers or [],
-                    release_year=media_item.release_year,
-                    rating=media_item.rating,
-                    game_modes=media_item.game_modes or []
+                    id=media_item["_id"],
+                    external_id=media_item["external_id"],
+                    title=media_item["title"],
+                    media_type=media_item["media_type"],
+                    year=media_item.get("year"),
+                    genres=media_item.get("genres", []),
+                    poster_path=media_item.get("poster_path"),
+                    overview=media_item.get("overview"),
+                    backdrop_path=media_item.get("backdrop_path"),
+                    vote_average=media_item.get("vote_average"),
+                    release_date=media_item.get("release_date"),
+                    seasons=media_item.get("seasons"),
+                    episodes=media_item.get("episodes"),
+                    chapters=media_item.get("chapters"),
+                    volumes=media_item.get("volumes"),
+                    authors=media_item.get("authors", []),
+                    publisher=media_item.get("publisher"),
+                    page_count=media_item.get("page_count"),
+                    platforms=media_item.get("platforms", []),
+                    developers=media_item.get("developers", []),
+                    publishers=media_item.get("publishers", []),
+                    release_year=media_item.get("release_year"),
+                    rating=media_item.get("rating"),
+                    game_modes=media_item.get("game_modes", [])
                 )
             })
     
     return enriched_items
 
 @api_router.put("/user-list/{list_item_id}")
-async def update_user_list_item(list_item_id: str, update_data: UserListItemUpdate, db: Session = Depends(get_db)):
-    db_item = db.query(UserList).filter(
-        UserList.id == list_item_id,
-        UserList.user_id == "demo_user"
-    ).first()
+async def update_user_list_item(list_item_id: str, update_data: UserListItemUpdate):
+    # Find the item
+    existing_item = await user_lists_collection.find_one({
+        "_id": list_item_id,
+        "user_id": "demo_user"
+    })
     
-    if not db_item:
+    if not existing_item:
         raise HTTPException(status_code=404, detail="List item not found")
     
     # Update fields
-    if update_data.status is not None:
-        db_item.status = update_data.status
-    if update_data.rating is not None:
-        db_item.rating = update_data.rating
-    if update_data.notes is not None:
-        db_item.notes = update_data.notes
-    if update_data.progress is not None:
-        db_item.progress = update_data.progress
+    update_fields = {"updated_at": datetime.utcnow()}
     
-    db_item.updated_at = datetime.utcnow()
-    db.commit()
+    if update_data.status is not None:
+        update_fields["status"] = update_data.status
+    if update_data.rating is not None:
+        update_fields["rating"] = update_data.rating
+    if update_data.notes is not None:
+        update_fields["notes"] = update_data.notes
+    if update_data.progress is not None:
+        update_fields["progress"] = update_data.progress
+    
+    await user_lists_collection.update_one(
+        {"_id": list_item_id, "user_id": "demo_user"},
+        {"$set": update_fields}
+    )
     
     return {"message": "Item updated successfully"}
 
 @api_router.delete("/user-list/{list_item_id}")
-async def remove_from_user_list(list_item_id: str, db: Session = Depends(get_db)):
-    result = db.query(UserList).filter(
-        UserList.id == list_item_id,
-        UserList.user_id == "demo_user"
-    ).delete()
+async def remove_from_user_list(list_item_id: str):
+    result = await user_lists_collection.delete_one({
+        "_id": list_item_id,
+        "user_id": "demo_user"
+    })
     
-    if result == 0:
+    if result.deleted_count == 0:
         raise HTTPException(status_code=404, detail="List item not found")
     
-    db.commit()
     return {"message": "Item removed from list"}
 
 @api_router.get("/stats")
-async def get_user_stats(db: Session = Depends(get_db)):
-    list_items = db.query(UserList).filter(UserList.user_id == "demo_user").all()
+async def get_user_stats():
+    list_items = await user_lists_collection.find({"user_id": "demo_user"}).to_list(length=None)
     
     stats = {}
     for item in list_items:
-        media_type = item.media_type
-        status = item.status
+        media_type = item["media_type"]
+        status = item["status"]
         
         if media_type not in stats:
             stats[media_type] = {}
@@ -759,39 +764,58 @@ async def get_user_stats(db: Session = Depends(get_db)):
     return stats
 
 @api_router.get("/user-preferences")
-async def get_user_preferences(db: Session = Depends(get_db)):
-    preferences = db.query(UserPreferences).filter(UserPreferences.user_id == "demo_user").first()
+async def get_user_preferences():
+    preferences = await user_preferences_collection.find_one({"user_id": "demo_user"})
     
     if not preferences:
         # Create default preferences
-        preferences = UserPreferences(user_id="demo_user", theme="dark")
-        db.add(preferences)
-        db.commit()
-        db.refresh(preferences)
+        preferences = {
+            "_id": str(uuid.uuid4()),
+            "user_id": "demo_user",
+            "theme": "dark",
+            "language": "en",
+            "notifications_enabled": True,
+            "created_at": datetime.utcnow(),
+            "updated_at": datetime.utcnow()
+        }
+        await user_preferences_collection.insert_one(preferences)
     
     return {
-        "theme": preferences.theme,
-        "language": preferences.language,
-        "notifications_enabled": preferences.notifications_enabled
+        "theme": preferences.get("theme", "dark"),
+        "language": preferences.get("language", "en"),
+        "notifications_enabled": preferences.get("notifications_enabled", True)
     }
 
 @api_router.put("/user-preferences")
-async def update_user_preferences(update_data: UserPreferencesUpdate, db: Session = Depends(get_db)):
-    preferences = db.query(UserPreferences).filter(UserPreferences.user_id == "demo_user").first()
+async def update_user_preferences(update_data: UserPreferencesUpdate):
+    preferences = await user_preferences_collection.find_one({"user_id": "demo_user"})
     
     if not preferences:
-        preferences = UserPreferences(user_id="demo_user")
-        db.add(preferences)
+        preferences = {
+            "_id": str(uuid.uuid4()),
+            "user_id": "demo_user",
+            "theme": "dark",
+            "language": "en",
+            "notifications_enabled": True,
+            "created_at": datetime.utcnow(),
+            "updated_at": datetime.utcnow()
+        }
+        await user_preferences_collection.insert_one(preferences)
+    
+    # Update fields
+    update_fields = {"updated_at": datetime.utcnow()}
     
     if update_data.theme is not None:
-        preferences.theme = update_data.theme
+        update_fields["theme"] = update_data.theme
     if update_data.language is not None:
-        preferences.language = update_data.language
+        update_fields["language"] = update_data.language
     if update_data.notifications_enabled is not None:
-        preferences.notifications_enabled = update_data.notifications_enabled
+        update_fields["notifications_enabled"] = update_data.notifications_enabled
     
-    preferences.updated_at = datetime.utcnow()
-    db.commit()
+    await user_preferences_collection.update_one(
+        {"user_id": "demo_user"},
+        {"$set": update_fields}
+    )
     
     return {"message": "Preferences updated successfully"}
 
