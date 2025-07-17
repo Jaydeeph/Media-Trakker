@@ -72,6 +72,7 @@ const Sidebar = ({ currentPage, onPageChange }) => {
     { id: 'anime', label: 'Anime', icon: '🎌' },
     { id: 'manga', label: 'Manga', icon: '📚' },
     { id: 'books', label: 'Books', icon: '📖' },
+    { id: 'games', label: 'Games', icon: '🎮' },
     { id: 'profile', label: 'My Profile', icon: '👤' },
     { id: 'settings', label: 'Settings', icon: '⚙️' }
   ];
