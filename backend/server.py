@@ -461,7 +461,7 @@ async def search_media(query: str = Query(...), media_type: str = Query(...), pa
     if not query.strip():
         raise HTTPException(status_code=400, detail="Search query cannot be empty")
     
-    valid_media_types = ["movie", "tv", "anime", "manga", "book"]
+    valid_media_types = ["movie", "tv", "anime", "manga", "book", "game"]
     if media_type not in valid_media_types:
         raise HTTPException(status_code=400, detail=f"Media type must be one of: {', '.join(valid_media_types)}")
     
