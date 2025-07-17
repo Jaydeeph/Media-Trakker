@@ -586,6 +586,29 @@ async def search_media(query: str = Query(...), media_type: str = Query(...), pa
                         page_count=media_item.page_count
                     ))
         
+        elif media_type == "game":
+            games_results = await search_igdb_games(query, page)
+            for item in games_results:
+                media_item = create_media_item_from_igdb_game(item, db)
+                if media_item:
+                    results.append(MediaItemResponse(
+                        id=media_item.id,
+                        external_id=media_item.external_id,
+                        title=media_item.title,
+                        media_type=media_item.media_type,
+                        year=media_item.year,
+                        genres=media_item.genres or [],
+                        poster_path=media_item.poster_path,
+                        overview=media_item.overview,
+                        vote_average=media_item.vote_average,
+                        platforms=media_item.platforms or [],
+                        developers=media_item.developers or [],
+                        publishers=media_item.publishers or [],
+                        release_year=media_item.release_year,
+                        rating=media_item.rating,
+                        game_modes=media_item.game_modes or []
+                    ))
+        
         return {"results": results, "source": "external"}
     
     except Exception as e:
