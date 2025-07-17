@@ -20,8 +20,8 @@ import json
 ROOT_DIR = Path(__file__).parent
 load_dotenv(ROOT_DIR / '.env')
 
-# Create MongoDB collections (no-op for MongoDB)
-# create_tables() - MongoDB doesn't need table creation
+# Create PostgreSQL tables
+create_tables()
 
 # Create the main app without a prefix
 app = FastAPI()
