@@ -34,6 +34,13 @@ class MediaItem(Base):
     authors = Column(JSON, nullable=True)  # Store as JSON array
     publisher = Column(String, nullable=True)
     page_count = Column(Integer, nullable=True)
+    # Games-specific fields
+    platforms = Column(JSON, nullable=True)  # Store as JSON array
+    developers = Column(JSON, nullable=True)  # Store as JSON array
+    publishers = Column(JSON, nullable=True)  # Store as JSON array
+    release_year = Column(Integer, nullable=True)
+    rating = Column(Float, nullable=True)  # IGDB rating
+    game_modes = Column(JSON, nullable=True)  # Store as JSON array
     additional_data = Column(JSON, nullable=True)  # Flexible field for any extra data
     created_at = Column(DateTime, default=datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
