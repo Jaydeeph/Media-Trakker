@@ -370,6 +370,87 @@ def create_media_item_from_book(book_data, db: Session):
         logging.error(f"Error creating book media item: {str(e)}")
         return None
 
+def create_media_item_from_igdb_game(game_data, db: Session):
+    try:
+        # Extract basic info
+        external_id = str(game_data["id"])
+        title = game_data.get("name", "")
+        overview = game_data.get("summary", "")
+        rating = game_data.get("rating", 0) / 10 if game_data.get("rating") else None
+        
+        # Extract release year
+        release_year = None
+        if game_data.get("first_release_date"):
+            from datetime import datetime
+            release_year = datetime.fromtimestamp(game_data["first_release_date"]).year
+        
+        # Extract cover image
+        poster_path = None
+        if game_data.get("cover"):
+            image_id = game_data["cover"].get("image_id")
+            if image_id:
+                poster_path = f"https://images.igdb.com/igdb/image/upload/t_cover_big/{image_id}.jpg"
+        
+        # Extract platforms
+        platforms = []
+        if game_data.get("platforms"):
+            platforms = [platform.get("name", "") for platform in game_data["platforms"]]
+        
+        # Extract developers and publishers
+        developers = []
+        publishers = []
+        if game_data.get("involved_companies"):
+            for company in game_data["involved_companies"]:
+                company_name = company.get("company", {}).get("name", "")
+                if company.get("developer"):
+                    developers.append(company_name)
+                if company.get("publisher"):
+                    publishers.append(company_name)
+        
+        # Extract genres
+        genres = []
+        if game_data.get("genres"):
+            genres = [genre.get("name", "") for genre in game_data["genres"]]
+        
+        # Extract game modes
+        game_modes = []
+        if game_data.get("game_modes"):
+            game_modes = [mode.get("name", "") for mode in game_data["game_modes"]]
+        
+        media_data = {
+            "external_id": external_id,
+            "title": title,
+            "media_type": "game",
+            "year": release_year,
+            "genres": genres,
+            "poster_path": poster_path,
+            "overview": overview,
+            "vote_average": rating,
+            "platforms": platforms,
+            "developers": developers,
+            "publishers": publishers,
+            "release_year": release_year,
+            "rating": rating,
+            "game_modes": game_modes
+        }
+        
+        existing = db.query(MediaItem).filter(
+            MediaItem.external_id == media_data["external_id"],
+            MediaItem.media_type == "game"
+        ).first()
+        
+        if existing:
+            return existing
+        
+        media_item = MediaItem(**media_data)
+        db.add(media_item)
+        db.commit()
+        db.refresh(media_item)
+        return media_item
+    except Exception as e:
+        logging.error(f"Error creating game media item: {str(e)}")
+        return None
+
 # API Routes
 @api_router.get("/")
 async def root():
