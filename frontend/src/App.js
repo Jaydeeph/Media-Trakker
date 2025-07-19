@@ -1170,11 +1170,6 @@ const ThemeContent = ({ currentPage, setCurrentPage, onSearch, loading, renderPa
         onPageChange={setCurrentPage}
       />
       <div className={`flex-1 ${sidebarMargin} transition-all duration-300`}>
-        <TopNavigation 
-          currentPage={currentPage}
-          onSearch={onSearch}
-          loading={loading}
-        />
         <main className="p-8">
           {renderPage()}
         </main>
