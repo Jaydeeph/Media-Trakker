@@ -136,7 +136,17 @@ const TopNavigation = ({ currentPage, onSearch, loading }) => {
   const handleSubmit = (e) => {
     e.preventDefault();
     if (query.trim()) {
-      onSearch(query, currentPage);
+      // Convert frontend page names to backend media types
+      const mediaTypeMap = {
+        'books': 'book',
+        'games': 'game',
+        'movies': 'movie',
+        'tv': 'tv',
+        'anime': 'anime',
+        'manga': 'manga'
+      };
+      const mediaType = mediaTypeMap[currentPage] || currentPage;
+      onSearch(query, mediaType);
     }
   };
 
