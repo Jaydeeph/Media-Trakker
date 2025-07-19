@@ -2,10 +2,11 @@ import sys
 import os
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
-from fastapi import FastAPI, APIRouter, HTTPException, Query
+from fastapi import FastAPI, APIRouter, HTTPException, Query, Depends
 from dotenv import load_dotenv
 from starlette.middleware.cors import CORSMiddleware
-from database import get_db, create_tables, media_items_collection, user_lists_collection, user_preferences_collection
+from sqlalchemy.orm import Session
+from database import get_db, create_tables, UserList, UserPreferences, MediaItem
 import os
 import logging
 from pathlib import Path
@@ -19,7 +20,7 @@ import json
 ROOT_DIR = Path(__file__).parent
 load_dotenv(ROOT_DIR / '.env')
 
-# Create MongoDB collections
+# Create PostgreSQL tables
 create_tables()
 
 # Create the main app without a prefix
@@ -231,10 +232,9 @@ async def search_igdb_games(query: str, page: int = 1):
             logging.error(f"IGDB Games API error: {str(e)}")
             return []
 
-# Helper functions to create MediaItem objects and cache them in MongoDB
-async def create_media_item_from_tmdb_movie(movie_data):
+# Helper functions to create MediaItem objects and cache them in PostgreSQL
+def create_media_item_from_tmdb_movie(movie_data, db: Session):
     media_data = {
-        "_id": str(uuid.uuid4()),
         "external_id": str(movie_data["id"]),
         "title": movie_data["title"],
         "media_type": "movie",
@@ -244,26 +244,26 @@ async def create_media_item_from_tmdb_movie(movie_data):
         "overview": movie_data.get("overview"),
         "backdrop_path": f"{TMDB_IMAGE_BASE_URL}{movie_data['backdrop_path']}" if movie_data.get("backdrop_path") else None,
         "vote_average": movie_data.get("vote_average"),
-        "release_date": movie_data.get("release_date"),
-        "created_at": datetime.utcnow(),
-        "updated_at": datetime.utcnow()
+        "release_date": movie_data.get("release_date")
     }
     
     # Check if already exists
-    existing = await media_items_collection.find_one({
-        "external_id": media_data["external_id"],
-        "media_type": "movie"
-    })
+    existing = db.query(MediaItem).filter(
+        MediaItem.external_id == media_data["external_id"],
+        MediaItem.media_type == "movie"
+    ).first()
     
     if existing:
         return existing
     
-    await media_items_collection.insert_one(media_data)
-    return media_data
+    media_item = MediaItem(**media_data)
+    db.add(media_item)
+    db.commit()
+    db.refresh(media_item)
+    return media_item
 
-async def create_media_item_from_tmdb_tv(tv_data):
+def create_media_item_from_tmdb_tv(tv_data, db: Session):
     media_data = {
-        "_id": str(uuid.uuid4()),
         "external_id": str(tv_data["id"]),
         "title": tv_data.get("name", tv_data.get("original_name")),
         "media_type": "tv",
@@ -275,30 +275,30 @@ async def create_media_item_from_tmdb_tv(tv_data):
         "vote_average": tv_data.get("vote_average"),
         "release_date": tv_data.get("first_air_date"),
         "seasons": tv_data.get("number_of_seasons"),
-        "episodes": tv_data.get("number_of_episodes"),
-        "created_at": datetime.utcnow(),
-        "updated_at": datetime.utcnow()
+        "episodes": tv_data.get("number_of_episodes")
     }
     
-    existing = await media_items_collection.find_one({
-        "external_id": media_data["external_id"],
-        "media_type": "tv"
-    })
+    existing = db.query(MediaItem).filter(
+        MediaItem.external_id == media_data["external_id"],
+        MediaItem.media_type == "tv"
+    ).first()
     
     if existing:
         return existing
     
-    await media_items_collection.insert_one(media_data)
-    return media_data
+    media_item = MediaItem(**media_data)
+    db.add(media_item)
+    db.commit()
+    db.refresh(media_item)
+    return media_item
 
-async def create_media_item_from_anilist(item_data, media_type):
+def create_media_item_from_anilist(item_data, media_type, db: Session):
     try:
         title = item_data["title"]["english"] or item_data["title"]["romaji"] or item_data["title"]["native"]
         start_date = item_data.get("startDate")
         year = start_date.get("year") if start_date else None
         
         media_data = {
-            "_id": str(uuid.uuid4()),
             "external_id": str(item_data["id"]),
             "title": title,
             "media_type": media_type.lower(),
@@ -309,26 +309,27 @@ async def create_media_item_from_anilist(item_data, media_type):
             "vote_average": item_data.get("averageScore", 0) / 10 if item_data.get("averageScore") else None,
             "episodes": item_data.get("episodes"),
             "chapters": item_data.get("chapters"),
-            "volumes": item_data.get("volumes"),
-            "created_at": datetime.utcnow(),
-            "updated_at": datetime.utcnow()
+            "volumes": item_data.get("volumes")
         }
         
-        existing = await media_items_collection.find_one({
-            "external_id": media_data["external_id"],
-            "media_type": media_type.lower()
-        })
+        existing = db.query(MediaItem).filter(
+            MediaItem.external_id == media_data["external_id"],
+            MediaItem.media_type == media_type.lower()
+        ).first()
         
         if existing:
             return existing
         
-        await media_items_collection.insert_one(media_data)
-        return media_data
+        media_item = MediaItem(**media_data)
+        db.add(media_item)
+        db.commit()
+        db.refresh(media_item)
+        return media_item
     except Exception as e:
         logging.error(f"Error creating AniList media item: {str(e)}")
         return None
 
-async def create_media_item_from_book(book_data):
+def create_media_item_from_book(book_data, db: Session):
     try:
         volume_info = book_data.get("volumeInfo", {})
         image_links = volume_info.get("imageLinks", {})
@@ -343,7 +344,6 @@ async def create_media_item_from_book(book_data):
                 pass
         
         media_data = {
-            "_id": str(uuid.uuid4()),
             "external_id": book_data["id"],
             "title": volume_info.get("title", ""),
             "media_type": "book",
@@ -354,26 +354,27 @@ async def create_media_item_from_book(book_data):
             "vote_average": volume_info.get("averageRating"),
             "authors": volume_info.get("authors", []),
             "publisher": volume_info.get("publisher"),
-            "page_count": volume_info.get("pageCount"),
-            "created_at": datetime.utcnow(),
-            "updated_at": datetime.utcnow()
+            "page_count": volume_info.get("pageCount")
         }
         
-        existing = await media_items_collection.find_one({
-            "external_id": media_data["external_id"],
-            "media_type": "book"
-        })
+        existing = db.query(MediaItem).filter(
+            MediaItem.external_id == media_data["external_id"],
+            MediaItem.media_type == "book"
+        ).first()
         
         if existing:
             return existing
         
-        await media_items_collection.insert_one(media_data)
-        return media_data
+        media_item = MediaItem(**media_data)
+        db.add(media_item)
+        db.commit()
+        db.refresh(media_item)
+        return media_item
     except Exception as e:
         logging.error(f"Error creating book media item: {str(e)}")
         return None
 
-async def create_media_item_from_igdb_game(game_data):
+def create_media_item_from_igdb_game(game_data, db: Session):
     try:
         # Extract basic info
         external_id = str(game_data["id"])
@@ -421,7 +422,6 @@ async def create_media_item_from_igdb_game(game_data):
             game_modes = [mode.get("name", "") for mode in game_data["game_modes"]]
         
         media_data = {
-            "_id": str(uuid.uuid4()),
             "external_id": external_id,
             "title": title,
             "media_type": "game",
@@ -435,21 +435,22 @@ async def create_media_item_from_igdb_game(game_data):
             "publishers": publishers,
             "release_year": release_year,
             "rating": rating,
-            "game_modes": game_modes,
-            "created_at": datetime.utcnow(),
-            "updated_at": datetime.utcnow()
+            "game_modes": game_modes
         }
         
-        existing = await media_items_collection.find_one({
-            "external_id": media_data["external_id"],
-            "media_type": "game"
-        })
+        existing = db.query(MediaItem).filter(
+            MediaItem.external_id == media_data["external_id"],
+            MediaItem.media_type == "game"
+        ).first()
         
         if existing:
             return existing
         
-        await media_items_collection.insert_one(media_data)
-        return media_data
+        media_item = MediaItem(**media_data)
+        db.add(media_item)
+        db.commit()
+        db.refresh(media_item)
+        return media_item
     except Exception as e:
         logging.error(f"Error creating game media item: {str(e)}")
         return None
@@ -457,10 +458,10 @@ async def create_media_item_from_igdb_game(game_data):
 # API Routes
 @api_router.get("/")
 async def root():
-    return {"message": "Media Trakker API - MongoDB with Games Support"}
+    return {"message": "Media Trakker API - PostgreSQL with Games Support"}
 
 @api_router.get("/search")
-async def search_media(query: str = Query(...), media_type: str = Query(...), page: int = Query(1)):
+async def search_media(query: str = Query(...), media_type: str = Query(...), page: int = Query(1), db: Session = Depends(get_db)):
     if not query.strip():
         raise HTTPException(status_code=400, detail="Search query cannot be empty")
     
@@ -469,39 +470,39 @@ async def search_media(query: str = Query(...), media_type: str = Query(...), pa
         raise HTTPException(status_code=400, detail=f"Media type must be one of: {', '.join(valid_media_types)}")
     
     try:
-        # Check MongoDB cache first
-        cached_results = await media_items_collection.find({
-            "title": {"$regex": query, "$options": "i"},
-            "media_type": media_type
-        }).limit(10).to_list(length=10)
+        # Check PostgreSQL cache first
+        cached_results = db.query(MediaItem).filter(
+            MediaItem.title.ilike(f"%{query}%"),
+            MediaItem.media_type == media_type
+        ).limit(10).all()
         
         if cached_results and len(cached_results) >= 5:
             return {
                 "results": [MediaItemResponse(
-                    id=item["_id"],
-                    external_id=item["external_id"],
-                    title=item["title"],
-                    media_type=item["media_type"],
-                    year=item.get("year"),
-                    genres=item.get("genres", []),
-                    poster_path=item.get("poster_path"),
-                    overview=item.get("overview"),
-                    backdrop_path=item.get("backdrop_path"),
-                    vote_average=item.get("vote_average"),
-                    release_date=item.get("release_date"),
-                    seasons=item.get("seasons"),
-                    episodes=item.get("episodes"),
-                    chapters=item.get("chapters"),
-                    volumes=item.get("volumes"),
-                    authors=item.get("authors", []),
-                    publisher=item.get("publisher"),
-                    page_count=item.get("page_count"),
-                    platforms=item.get("platforms", []),
-                    developers=item.get("developers", []),
-                    publishers=item.get("publishers", []),
-                    release_year=item.get("release_year"),
-                    rating=item.get("rating"),
-                    game_modes=item.get("game_modes", [])
+                    id=item.id,
+                    external_id=item.external_id,
+                    title=item.title,
+                    media_type=item.media_type,
+                    year=item.year,
+                    genres=item.genres or [],
+                    poster_path=item.poster_path,
+                    overview=item.overview,
+                    backdrop_path=item.backdrop_path,
+                    vote_average=item.vote_average,
+                    release_date=item.release_date,
+                    seasons=item.seasons,
+                    episodes=item.episodes,
+                    chapters=item.chapters,
+                    volumes=item.volumes,
+                    authors=item.authors or [],
+                    publisher=item.publisher,
+                    page_count=item.page_count,
+                    platforms=item.platforms or [],
+                    developers=item.developers or [],
+                    publishers=item.publishers or [],
+                    release_year=item.release_year,
+                    rating=item.rating,
+                    game_modes=item.game_modes or []
                 ) for item in cached_results],
                 "source": "cache"
             }
@@ -513,103 +514,103 @@ async def search_media(query: str = Query(...), media_type: str = Query(...), pa
             tmdb_results = await search_tmdb_movies(query, page)
             for item in tmdb_results.get("results", []):
                 detailed_data = await get_movie_details(item["id"])
-                media_item = await create_media_item_from_tmdb_movie(detailed_data)
+                media_item = create_media_item_from_tmdb_movie(detailed_data, db)
                 if media_item:
                     results.append(MediaItemResponse(
-                        id=media_item["_id"],
-                        external_id=media_item["external_id"],
-                        title=media_item["title"],
-                        media_type=media_item["media_type"],
-                        year=media_item.get("year"),
-                        genres=media_item.get("genres", []),
-                        poster_path=media_item.get("poster_path"),
-                        overview=media_item.get("overview"),
-                        vote_average=media_item.get("vote_average"),
-                        release_date=media_item.get("release_date")
+                        id=media_item.id,
+                        external_id=media_item.external_id,
+                        title=media_item.title,
+                        media_type=media_item.media_type,
+                        year=media_item.year,
+                        genres=media_item.genres or [],
+                        poster_path=media_item.poster_path,
+                        overview=media_item.overview,
+                        vote_average=media_item.vote_average,
+                        release_date=media_item.release_date
                     ))
         
         elif media_type == "tv":
             tmdb_results = await search_tmdb_tv_shows(query, page)
             for item in tmdb_results.get("results", []):
                 detailed_data = await get_tv_details(item["id"])
-                media_item = await create_media_item_from_tmdb_tv(detailed_data)
+                media_item = create_media_item_from_tmdb_tv(detailed_data, db)
                 if media_item:
                     results.append(MediaItemResponse(
-                        id=media_item["_id"],
-                        external_id=media_item["external_id"],
-                        title=media_item["title"],
-                        media_type=media_item["media_type"],
-                        year=media_item.get("year"),
-                        genres=media_item.get("genres", []),
-                        poster_path=media_item.get("poster_path"),
-                        overview=media_item.get("overview"),
-                        vote_average=media_item.get("vote_average"),
-                        seasons=media_item.get("seasons"),
-                        episodes=media_item.get("episodes")
+                        id=media_item.id,
+                        external_id=media_item.external_id,
+                        title=media_item.title,
+                        media_type=media_item.media_type,
+                        year=media_item.year,
+                        genres=media_item.genres or [],
+                        poster_path=media_item.poster_path,
+                        overview=media_item.overview,
+                        vote_average=media_item.vote_average,
+                        seasons=media_item.seasons,
+                        episodes=media_item.episodes
                     ))
         
         elif media_type in ["anime", "manga"]:
             anilist_results = await search_anilist(query, media_type, page)
             if anilist_results.get("data") and anilist_results["data"].get("Page"):
                 for item in anilist_results["data"]["Page"]["media"]:
-                    media_item = await create_media_item_from_anilist(item, media_type)
+                    media_item = create_media_item_from_anilist(item, media_type, db)
                     if media_item:
                         results.append(MediaItemResponse(
-                            id=media_item["_id"],
-                            external_id=media_item["external_id"],
-                            title=media_item["title"],
-                            media_type=media_item["media_type"],
-                            year=media_item.get("year"),
-                            genres=media_item.get("genres", []),
-                            poster_path=media_item.get("poster_path"),
-                            overview=media_item.get("overview"),
-                            vote_average=media_item.get("vote_average"),
-                            episodes=media_item.get("episodes"),
-                            chapters=media_item.get("chapters"),
-                            volumes=media_item.get("volumes")
+                            id=media_item.id,
+                            external_id=media_item.external_id,
+                            title=media_item.title,
+                            media_type=media_item.media_type,
+                            year=media_item.year,
+                            genres=media_item.genres or [],
+                            poster_path=media_item.poster_path,
+                            overview=media_item.overview,
+                            vote_average=media_item.vote_average,
+                            episodes=media_item.episodes,
+                            chapters=media_item.chapters,
+                            volumes=media_item.volumes
                         ))
         
         elif media_type == "book":
             books_results = await search_google_books(query, page)
             for item in books_results.get("items", []):
-                media_item = await create_media_item_from_book(item)
+                media_item = create_media_item_from_book(item, db)
                 if media_item:
                     results.append(MediaItemResponse(
-                        id=media_item["_id"],
-                        external_id=media_item["external_id"],
-                        title=media_item["title"],
-                        media_type=media_item["media_type"],
-                        year=media_item.get("year"),
-                        genres=media_item.get("genres", []),
-                        poster_path=media_item.get("poster_path"),
-                        overview=media_item.get("overview"),
-                        vote_average=media_item.get("vote_average"),
-                        authors=media_item.get("authors", []),
-                        publisher=media_item.get("publisher"),
-                        page_count=media_item.get("page_count")
+                        id=media_item.id,
+                        external_id=media_item.external_id,
+                        title=media_item.title,
+                        media_type=media_item.media_type,
+                        year=media_item.year,
+                        genres=media_item.genres or [],
+                        poster_path=media_item.poster_path,
+                        overview=media_item.overview,
+                        vote_average=media_item.vote_average,
+                        authors=media_item.authors or [],
+                        publisher=media_item.publisher,
+                        page_count=media_item.page_count
                     ))
         
         elif media_type == "game":
             games_results = await search_igdb_games(query, page)
             for item in games_results:
-                media_item = await create_media_item_from_igdb_game(item)
+                media_item = create_media_item_from_igdb_game(item, db)
                 if media_item:
                     results.append(MediaItemResponse(
-                        id=media_item["_id"],
-                        external_id=media_item["external_id"],
-                        title=media_item["title"],
-                        media_type=media_item["media_type"],
-                        year=media_item.get("year"),
-                        genres=media_item.get("genres", []),
-                        poster_path=media_item.get("poster_path"),
-                        overview=media_item.get("overview"),
-                        vote_average=media_item.get("vote_average"),
-                        platforms=media_item.get("platforms", []),
-                        developers=media_item.get("developers", []),
-                        publishers=media_item.get("publishers", []),
-                        release_year=media_item.get("release_year"),
-                        rating=media_item.get("rating"),
-                        game_modes=media_item.get("game_modes", [])
+                        id=media_item.id,
+                        external_id=media_item.external_id,
+                        title=media_item.title,
+                        media_type=media_item.media_type,
+                        year=media_item.year,
+                        genres=media_item.genres or [],
+                        poster_path=media_item.poster_path,
+                        overview=media_item.overview,
+                        vote_average=media_item.vote_average,
+                        platforms=media_item.platforms or [],
+                        developers=media_item.developers or [],
+                        publishers=media_item.publishers or [],
+                        release_year=media_item.release_year,
+                        rating=media_item.rating,
+                        game_modes=media_item.game_modes or []
                     ))
         
         return {"results": results, "source": "external"}
@@ -619,143 +620,138 @@ async def search_media(query: str = Query(...), media_type: str = Query(...), pa
         raise HTTPException(status_code=500, detail="An error occurred while searching")
 
 @api_router.post("/user-list")
-async def add_to_user_list(item: UserListItemCreate):
+async def add_to_user_list(item: UserListItemCreate, db: Session = Depends(get_db)):
     # Check if item already exists
-    existing_item = await user_lists_collection.find_one({
-        "user_id": "demo_user",
-        "media_id": item.media_id
-    })
+    existing_item = db.query(UserList).filter(
+        UserList.user_id == "demo_user",
+        UserList.media_id == item.media_id
+    ).first()
     
     if existing_item:
         raise HTTPException(status_code=400, detail="Item already in your list")
     
     # Create new list item
-    list_item_data = {
-        "_id": str(uuid.uuid4()),
-        "user_id": "demo_user",
-        "media_id": item.media_id,
-        "media_type": item.media_type,
-        "status": item.status,
-        "rating": item.rating,
-        "notes": item.notes,
-        "progress": item.progress,
-        "created_at": datetime.utcnow(),
-        "updated_at": datetime.utcnow()
-    }
+    db_item = UserList(
+        user_id="demo_user",
+        media_id=item.media_id,
+        media_type=item.media_type,
+        status=item.status,
+        rating=item.rating,
+        notes=item.notes,
+        progress=item.progress
+    )
     
-    await user_lists_collection.insert_one(list_item_data)
+    db.add(db_item)
+    db.commit()
+    db.refresh(db_item)
     
-    return {"message": "Item added to list", "id": list_item_data["_id"]}
+    return {"message": "Item added to list", "id": db_item.id}
 
 @api_router.get("/user-list")
-async def get_user_list(status: Optional[str] = None, media_type: Optional[str] = None):
-    query = {"user_id": "demo_user"}
+async def get_user_list(status: Optional[str] = None, media_type: Optional[str] = None, db: Session = Depends(get_db)):
+    query = db.query(UserList).filter(UserList.user_id == "demo_user")
     
     if status:
-        query["status"] = status
+        query = query.filter(UserList.status == status)
     if media_type:
-        query["media_type"] = media_type
+        query = query.filter(UserList.media_type == media_type)
     
-    list_items = await user_lists_collection.find(query).to_list(length=None)
+    list_items = query.all()
     
-    # Enrich with media details from MongoDB
+    # Enrich with media details from PostgreSQL
     enriched_items = []
     for item in list_items:
-        media_item = await media_items_collection.find_one({"_id": item["media_id"]})
+        media_item = db.query(MediaItem).filter(MediaItem.id == item.media_id).first()
         if media_item:
             enriched_items.append({
                 "list_item": {
-                    "id": item["_id"],
-                    "user_id": item["user_id"],
-                    "media_id": item["media_id"],
-                    "media_type": item["media_type"],
-                    "status": item["status"],
-                    "rating": item.get("rating"),
-                    "notes": item.get("notes"),
-                    "progress": item.get("progress"),
-                    "created_at": item["created_at"].isoformat(),
-                    "updated_at": item["updated_at"].isoformat()
+                    "id": item.id,
+                    "user_id": item.user_id,
+                    "media_id": item.media_id,
+                    "media_type": item.media_type,
+                    "status": item.status,
+                    "rating": item.rating,
+                    "notes": item.notes,
+                    "progress": item.progress,
+                    "created_at": item.created_at.isoformat(),
+                    "updated_at": item.updated_at.isoformat()
                 },
                 "media_item": MediaItemResponse(
-                    id=media_item["_id"],
-                    external_id=media_item["external_id"],
-                    title=media_item["title"],
-                    media_type=media_item["media_type"],
-                    year=media_item.get("year"),
-                    genres=media_item.get("genres", []),
-                    poster_path=media_item.get("poster_path"),
-                    overview=media_item.get("overview"),
-                    backdrop_path=media_item.get("backdrop_path"),
-                    vote_average=media_item.get("vote_average"),
-                    release_date=media_item.get("release_date"),
-                    seasons=media_item.get("seasons"),
-                    episodes=media_item.get("episodes"),
-                    chapters=media_item.get("chapters"),
-                    volumes=media_item.get("volumes"),
-                    authors=media_item.get("authors", []),
-                    publisher=media_item.get("publisher"),
-                    page_count=media_item.get("page_count"),
-                    platforms=media_item.get("platforms", []),
-                    developers=media_item.get("developers", []),
-                    publishers=media_item.get("publishers", []),
-                    release_year=media_item.get("release_year"),
-                    rating=media_item.get("rating"),
-                    game_modes=media_item.get("game_modes", [])
+                    id=media_item.id,
+                    external_id=media_item.external_id,
+                    title=media_item.title,
+                    media_type=media_item.media_type,
+                    year=media_item.year,
+                    genres=media_item.genres or [],
+                    poster_path=media_item.poster_path,
+                    overview=media_item.overview,
+                    backdrop_path=media_item.backdrop_path,
+                    vote_average=media_item.vote_average,
+                    release_date=media_item.release_date,
+                    seasons=media_item.seasons,
+                    episodes=media_item.episodes,
+                    chapters=media_item.chapters,
+                    volumes=media_item.volumes,
+                    authors=media_item.authors or [],
+                    publisher=media_item.publisher,
+                    page_count=media_item.page_count,
+                    platforms=media_item.platforms or [],
+                    developers=media_item.developers or [],
+                    publishers=media_item.publishers or [],
+                    release_year=media_item.release_year,
+                    rating=media_item.rating,
+                    game_modes=media_item.game_modes or []
                 )
             })
     
     return enriched_items
 
 @api_router.put("/user-list/{list_item_id}")
-async def update_user_list_item(list_item_id: str, update_data: UserListItemUpdate):
-    # Find the item
-    existing_item = await user_lists_collection.find_one({
-        "_id": list_item_id,
-        "user_id": "demo_user"
-    })
+async def update_user_list_item(list_item_id: str, update_data: UserListItemUpdate, db: Session = Depends(get_db)):
+    db_item = db.query(UserList).filter(
+        UserList.id == list_item_id,
+        UserList.user_id == "demo_user"
+    ).first()
     
-    if not existing_item:
+    if not db_item:
         raise HTTPException(status_code=404, detail="List item not found")
     
     # Update fields
-    update_fields = {"updated_at": datetime.utcnow()}
-    
     if update_data.status is not None:
-        update_fields["status"] = update_data.status
+        db_item.status = update_data.status
     if update_data.rating is not None:
-        update_fields["rating"] = update_data.rating
+        db_item.rating = update_data.rating
     if update_data.notes is not None:
-        update_fields["notes"] = update_data.notes
+        db_item.notes = update_data.notes
     if update_data.progress is not None:
-        update_fields["progress"] = update_data.progress
+        db_item.progress = update_data.progress
     
-    await user_lists_collection.update_one(
-        {"_id": list_item_id, "user_id": "demo_user"},
-        {"$set": update_fields}
-    )
+    db_item.updated_at = datetime.utcnow()
+    db.commit()
     
     return {"message": "Item updated successfully"}
 
 @api_router.delete("/user-list/{list_item_id}")
-async def remove_from_user_list(list_item_id: str):
-    result = await user_lists_collection.delete_one({
-        "_id": list_item_id,
-        "user_id": "demo_user"
-    })
+async def remove_from_user_list(list_item_id: str, db: Session = Depends(get_db)):
+    result = db.query(UserList).filter(
+        UserList.id == list_item_id,
+        UserList.user_id == "demo_user"
+    ).delete()
     
-    if result.deleted_count == 0:
+    if result == 0:
         raise HTTPException(status_code=404, detail="List item not found")
     
+    db.commit()
     return {"message": "Item removed from list"}
 
 @api_router.get("/stats")
-async def get_user_stats():
-    list_items = await user_lists_collection.find({"user_id": "demo_user"}).to_list(length=None)
+async def get_user_stats(db: Session = Depends(get_db)):
+    list_items = db.query(UserList).filter(UserList.user_id == "demo_user").all()
     
     stats = {}
     for item in list_items:
-        media_type = item["media_type"]
-        status = item["status"]
+        media_type = item.media_type
+        status = item.status
         
         if media_type not in stats:
             stats[media_type] = {}
@@ -767,58 +763,39 @@ async def get_user_stats():
     return stats
 
 @api_router.get("/user-preferences")
-async def get_user_preferences():
-    preferences = await user_preferences_collection.find_one({"user_id": "demo_user"})
+async def get_user_preferences(db: Session = Depends(get_db)):
+    preferences = db.query(UserPreferences).filter(UserPreferences.user_id == "demo_user").first()
     
     if not preferences:
         # Create default preferences
-        preferences = {
-            "_id": str(uuid.uuid4()),
-            "user_id": "demo_user",
-            "theme": "dark",
-            "language": "en",
-            "notifications_enabled": True,
-            "created_at": datetime.utcnow(),
-            "updated_at": datetime.utcnow()
-        }
-        await user_preferences_collection.insert_one(preferences)
+        preferences = UserPreferences(user_id="demo_user", theme="dark")
+        db.add(preferences)
+        db.commit()
+        db.refresh(preferences)
     
     return {
-        "theme": preferences.get("theme", "dark"),
-        "language": preferences.get("language", "en"),
-        "notifications_enabled": preferences.get("notifications_enabled", True)
+        "theme": preferences.theme,
+        "language": preferences.language,
+        "notifications_enabled": preferences.notifications_enabled
     }
 
 @api_router.put("/user-preferences")
-async def update_user_preferences(update_data: UserPreferencesUpdate):
-    preferences = await user_preferences_collection.find_one({"user_id": "demo_user"})
+async def update_user_preferences(update_data: UserPreferencesUpdate, db: Session = Depends(get_db)):
+    preferences = db.query(UserPreferences).filter(UserPreferences.user_id == "demo_user").first()
     
     if not preferences:
-        preferences = {
-            "_id": str(uuid.uuid4()),
-            "user_id": "demo_user",
-            "theme": "dark",
-            "language": "en",
-            "notifications_enabled": True,
-            "created_at": datetime.utcnow(),
-            "updated_at": datetime.utcnow()
-        }
-        await user_preferences_collection.insert_one(preferences)
-    
-    # Update fields
-    update_fields = {"updated_at": datetime.utcnow()}
+        preferences = UserPreferences(user_id="demo_user")
+        db.add(preferences)
     
     if update_data.theme is not None:
-        update_fields["theme"] = update_data.theme
+        preferences.theme = update_data.theme
     if update_data.language is not None:
-        update_fields["language"] = update_data.language
+        preferences.language = update_data.language
     if update_data.notifications_enabled is not None:
-        update_fields["notifications_enabled"] = update_data.notifications_enabled
+        preferences.notifications_enabled = update_data.notifications_enabled
     
-    await user_preferences_collection.update_one(
-        {"user_id": "demo_user"},
-        {"$set": update_fields}
-    )
+    preferences.updated_at = datetime.utcnow()
+    db.commit()
     
     return {"message": "Preferences updated successfully"}
 
