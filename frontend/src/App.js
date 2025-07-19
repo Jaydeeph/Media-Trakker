@@ -887,7 +887,22 @@ function App() {
       case 'manga':
       case 'books':
       case 'games':
-        return <MediaPage mediaType={currentPage === 'books' ? 'book' : currentPage === 'games' ? 'game' : currentPage} searchResults={searchResults} />;
+        const mediaType = currentPage === 'books' ? 'book' : currentPage === 'games' ? 'game' : currentPage;
+        const mediaState = mediaStates[mediaType];
+        const userMediaItems = userListItems.filter(item => item.media_item.media_type === mediaType);
+        
+        return (
+          <MediaPage 
+            mediaType={mediaType}
+            searchResults={mediaState.searchResults}
+            searchQuery={mediaState.searchQuery}
+            loading={mediaState.loading}
+            userMediaItems={userMediaItems}
+            onAddToList={handleAddToList}
+            onUpdateItem={handleUpdateItem}
+            onRemoveItem={handleRemoveItem}
+          />
+        );
       case 'profile':
         return (
           <ProfilePage
@@ -909,7 +924,7 @@ function App() {
         currentPage={currentPage}
         setCurrentPage={setCurrentPage}
         onSearch={handleSearch}
-        loading={loading}
+        loading={mediaStates[currentPage === 'books' ? 'book' : currentPage === 'games' ? 'game' : currentPage]?.loading || false}
         renderPage={renderPage}
       />
     </ThemeProvider>
