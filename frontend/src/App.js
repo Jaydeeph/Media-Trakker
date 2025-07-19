@@ -1116,6 +1116,7 @@ function App() {
             onAddToList={handleAddToList}
             onUpdateItem={handleUpdateItem}
             onRemoveItem={handleRemoveItem}
+            onSearch={handleSearch}
           />
         );
       case 'profile':
