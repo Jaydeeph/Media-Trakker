@@ -738,23 +738,8 @@ const MediaPage = ({ mediaType, searchResults, searchQuery, loading, userMediaIt
 
   const handleSearch = async (e) => {
     e.preventDefault();
-    if (localSearchQuery.trim()) {
-      // Call the parent's search handler with the media type and query
-      const API = process.env.REACT_APP_BACKEND_URL || 'http://localhost:8001/api';
-      
-      try {
-        const response = await fetch(`${API}/search?query=${encodeURIComponent(localSearchQuery)}&media_type=${mediaType}`);
-        const data = await response.json();
-        
-        // For now, we'll handle the search locally since the parent state management is complex
-        // In a real app, this would call a parent handler to update the centralized state
-        console.log('Search results:', data.results);
-        
-        // We need to trigger the parent search handler
-        window.handleMediaSearch && window.handleMediaSearch(localSearchQuery, mediaType);
-      } catch (error) {
-        console.error('Search error:', error);
-      }
+    if (localSearchQuery.trim() && onSearch) {
+      onSearch(localSearchQuery, mediaType);
     }
   };
 
