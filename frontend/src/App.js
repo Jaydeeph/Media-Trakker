@@ -722,6 +722,11 @@ const MediaPage = ({ mediaType, searchResults, searchQuery, loading, userMediaIt
   const { theme } = useTheme();
   const [localSearchQuery, setLocalSearchQuery] = useState(searchQuery || '');
   
+  // Sync local search query with parent state
+  useEffect(() => {
+    setLocalSearchQuery(searchQuery || '');
+  }, [searchQuery]);
+  
   const getMediaTypeInfo = (type) => {
     const info = {
       'movie': { title: 'Movies', icon: '🎬', description: 'Discover and track your favorite movies', placeholder: 'Search for movies...' },
