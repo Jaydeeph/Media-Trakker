@@ -7,7 +7,7 @@ from datetime import datetime
 class MediaTrakkerAPITest(unittest.TestCase):
     def setUp(self):
         # Use the public endpoint from frontend/.env
-        self.base_url = "https://6550351b-9c50-49d8-9504-731308e5e7d9.preview.emergentagent.com/api"
+        self.base_url = "https://4457eb96-6a6f-4363-b562-e5bd7d82f717.preview.emergentagent.com/api"
         self.test_timestamp = datetime.now().strftime("%Y%m%d%H%M%S")
         self.test_items = []  # Store created items for cleanup
 

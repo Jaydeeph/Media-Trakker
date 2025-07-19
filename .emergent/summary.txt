@@ -1,28 +1,28 @@
 <analysis>
-The AI engineer's trajectory chronicles the development of Media Trakker, successfully navigating feature implementation and significant architectural pivots based on user feedback. Initially, the focus was on delivering a core MVP for movies and TV shows with TMDB integration and MongoDB caching, achieving a quick aha moment.. Subsequent phases involved expanding media types (Anime, Manga, Books) with AniList and Google Books APIs, addressing integration-specific issues. A major turning point was a comprehensive UI/UX overhaul, transitioning from tabs to a sidebar navigation, introducing dedicated media pages, a dashboard, and a profile section, all enhanced with Apple-like design principles and a dark mode. Crucially, the user's foresight on MongoDB scalability led to a complete architectural shift to PostgreSQL, which, despite an initial misinterpretation leading to a hybrid approach, was fully rectified to a pure PostgreSQL solution for all data, exemplifying adaptability and error correction. This trajectory demonstrates incremental development, rapid iteration, and strong user-driven refinement.
+The AI engineer's trajectory details the Media Trakker application's evolution, marked by dynamic feature additions and critical architectural shifts. Initially, the focus was on core MVP delivery with TMDB and MongoDB. User feedback spurred expansion to Anime, Manga, Books (AniList, Google Books), and a significant UI/UX overhaul to a sidebar navigation, dedicated media pages, and dark mode. A pivotal challenge was the database migration: despite a clear user mandate for PostgreSQL due to scalability concerns, the AI engineer repeatedly reverted to MongoDB due to environment setup issues. This led to data loss and multiple re-migrations. The latest phase involves extensive frontend architectural refactoring to ensure individual page state management and dedicated search functionality, addressing user complaints about shared UI components and broken search. The trajectory showcases iterative development, responsiveness to feedback, and persistent troubleshooting.
 </analysis>
-<product_requirements>
-The Media Trakker application aims to be a unified platform for cataloging and monitoring media consumption across Movies, TV Shows, Anime, Games, Manga, and Books, with customizable tracking. It targets Casual, Power, and Cross-platform users, with an Advanced Usage setting to toggle UI complexity.
 
-Key functional requirements include:
-- **Media Categories**: Dedicated pages for each media type with search, list creation (Watching, Completed, Paused, Planning, Dropped), and a rating system. TV Shows/Anime include season/episode tracking; Games include external platform integration (Steam, Epic Games, etc.) for library sync and stats; Manga includes chapter/arc tracking; Books include chapter tracking.
-- **User Interface**:
-    - **Initial**: Conversion-optimized Landing Page, Dashboard for statistics, recommendations, and friend activity.
-    - **Revised**: Sidebar navigation with single pages per media type, a centralized Dashboard/Homepage for statistics, and a Profile page for segregated media lists.
-    - **Design**: Netflix-inspired base theme, Apple-inspired minimalist UX, full dark mode, and a settings page for theme management (Light/Dark, Reset).
-- **Statistics**: Comprehensive media consumption stats, personalized recommendations, cross-category insights, and friend activity.
-- **Core Integrations**: TMDB for Movies/TV Shows, AniList for Anime/Manga, Google Books for Books, and planned IGDB for Games.
-- **Database**: Initially MongoDB for caching, later shifted to a full PostgreSQL solution for all user and cached external API data, for future-proofing and scalability.
-- **API Design**: RESTful/GraphQL, authentication/authorization, rate limiting, and documentation.
+<product_requirements>
+The Media Trakker application aims to be a comprehensive platform for users to catalog and monitor their media consumption across various types: Movies, TV Shows, Anime, Manga, Books, and Games. The core problem it solves is providing a unified, customizable tracking experience.
+
+Key requirements and current implementation details include:
+-   **Media Categories**: Dedicated pages with search, list management (Watching, Completed, Paused, Planning, Dropped, Reading, Playing), and rating. TV Shows/Anime include season/episode tracking; Manga/Books include chapter tracking. Games integration is the current focus, including platforms and external ID linking.
+-   **User Interface**: Evolved from a tab-based to a persistent collapsible sidebar navigation. Features dedicated pages for each media type, a centralized Dashboard for statistics, and a Profile page for segregated user lists. The design incorporates Netflix-inspired themes with Apple-inspired minimalism (rounded corners, shadows, blur, smooth animations), a full dark mode, and a settings page for theme management (persisted in DB).
+-   **Statistics**: Comprehensive consumption stats, personalized recommendations, cross-category insights, and friend activity are planned. The Dashboard currently shows summary statistics.
+-   **Core Integrations**: TMDB for Movies/TV Shows, AniList for Anime/Manga, Google Books for Books, and IGDB for Games are implemented. All external API data is cached.
+-   **Database**: Migrated from MongoDB (initial caching) to a full PostgreSQL solution for all user and cached data, ensuring future-proofing and scalability. This migration has been a recurring point of contention, now resolved to PostgreSQL.
+-   **API Design**: RESTful/GraphQL, with authentication/authorization and rate limiting planned. Backend API routes are prefixed with '/api'.
 </product_requirements>
+
 <key_technical_concepts>
-- **Full-stack Architecture**: React.js frontend, FastAPI backend, PostgreSQL database.
-- **API Integrations**: TMDB (REST), AniList (GraphQL), Google Books (REST).
-- **Styling**: Tailwind CSS for responsive and Apple-inspired UX/UI.
-- **Database Management**: Migration from MongoDB to a pure PostgreSQL solution for scalability and data integrity.
-- **State Management**: React Hooks (useState, useEffect) for local state, with future consideration for Context API.
-- **Environment Variables**: Crucial for secure API keys and URLs.
+-   **Full-stack Architecture**: React.js frontend, FastAPI backend, PostgreSQL database.
+-   **API Integrations**: TMDB (REST), AniList (GraphQL), Google Books (REST), IGDB (REST).
+-   **Styling**: Tailwind CSS for responsive and Apple-inspired UX/UI.
+-   **Database Management**: PostgreSQL (SQLAlchemy ORM) for all data.
+-   **State Management**: React Hooks (useState, useEffect) for local state, with a recent overhaul to individual page states.
+-   **Environment Variables**: Securely manages API keys and URLs.
 </key_technical_concepts>
+
 <code_architecture>
 The application features a standard full-stack structure:
 
@@ -35,74 +35,47 @@ The application features a standard full-stack structure:
 **Key Files and Their Importance:**
 
 -   ****:
-    -   **Importance**: This is the core of the FastAPI backend, defining all API endpoints and handling business logic. It orchestrates interactions between the frontend, the database, and external APIs.
-    -   **Changes Made**:
-        -   Initially configured for TMDB integration and MongoDB caching.
-        -   Extended to integrate AniList (GraphQL) and Google Books APIs, handling search and data retrieval for Anime, Manga, and Books.
-        -   Significant refactoring to completely remove MongoDB dependencies and integrate with PostgreSQL via . All data operations (caching external API data, user lists, user preferences) now use PostgreSQL.
-        -   Includes logic for media search, adding/removing items from user lists, and retrieving user statistics.
-        -   CORS handling and environment variable loading ().
-
+    -   **Importance**: Core of the FastAPI backend, defining API endpoints and business logic.
+    -   **Changes Made**: Evolved from initial TMDB/MongoDB to integrate AniList, Google Books, and IGDB APIs. Underwent multiple refactorings to entirely remove MongoDB and integrate with PostgreSQL via . Includes logic for media search, user list management, and statistics. Was heavily modified during the repeated MongoDB-PostgreSQL migrations. Updated to handle IGDB authentication, search, and data conversion. Corrected imports and async calls.
 -   ****:
-    -   **Importance**: This file was newly introduced to manage the PostgreSQL database connection and define the SQLAlchemy ORM models. It abstracts database operations, ensuring a clean separation of concerns.
-    -   **Changes Made**:
-        -   Sets up the PostgreSQL database engine and session management.
-        -   Defines ORM models for  (for caching external media data),  (for user's tracked media and progress), and  (for user settings like theme).
-        -   Utilizes PostgreSQL's native JSON fields for flexible data storage like genres or detailed progress tracking.
-        -   Ensures UUIDs are used for primary keys to avoid serialization issues.
-
+    -   **Importance**: Manages PostgreSQL connection and SQLAlchemy ORM models.
+    -   **Changes Made**: Initially introduced for PostgreSQL, then modified to use MongoDB collections during temporary reverts, and finally restored to full PostgreSQL ORM models (, , ) using UUIDs for primary keys. Defines PostgreSQL engine and session management.
 -   ****:
-    -   **Importance**: The main React component, serving as the application's entry point and handling overall layout, routing (client-side), and state management.
-    -   **Changes Made**:
-        -   Initial setup for Movies and TV Shows search and list management.
-        -   Expanded to support Anime, Manga, and Books, including search results display and progress tracking.
-        -   Underwent a major UI/UX overhaul: transitioned from a tab-based navigation to a persistent sidebar navigation.
-        -   Implemented separate dedicated pages for each media type (Movies, TV Shows, Anime, Manga, Books), a Dashboard for statistics, and a Profile page for segregated user lists.
-        -   Incorporated a collapsible sidebar with hover functionality and tooltips.
-        -   Integrated a top navigation bar on media pages for search functionality.
-        -   Implemented a full dark mode theme and a settings page allowing users to switch themes (light/dark) with persistence to the PostgreSQL database.
-        -   Enhanced dashboard statistics display with modern card designs, progress bars, and segregated activity sections.
-        -   Applied Apple-like UX design principles (rounded corners, subtle shadows, backdrop blur, smooth animations).
-
+    -   **Importance**: Main React component handling layout, routing, and state.
+    -   **Changes Made**: Expanded to support Movies, TV Shows, Anime, Manga, Books, and Games. Underwent a major UI/UX overhaul from tabs to a sidebar navigation, creating dedicated pages for each media type, a Dashboard, and a Profile section. Implemented dark mode and settings. Most recently, underwent a significant architectural overhaul to transition from shared state to individual state management for each media page (e.g., , ), aiming for persistent search results and independent UI per media type. This involved removing shared components like  and embedding search logic within each .
 -   ****:
-    -   **Importance**: Contains global styles and custom utility classes used by Tailwind CSS.
-    -   **Changes Made**: Updated extensively to support the full dark mode theme, new UI components, and Apple-like design elements (e.g., specific colors, shadows, blur effects, transition timings).
-
+    -   **Importance**: Global styles and Tailwind CSS utilities.
+    -   **Changes Made**: Updated to support dark mode, new UI components, and Apple-like design elements (colors, shadows, blur, animations).
 -   ****:
-    -   **Importance**: Stores environment-specific variables like API keys and database connection strings, ensuring sensitive information is not hardcoded.
-    -   **Changes Made**: Initially contained  and . After the full PostgreSQL migration, it now configures PostgreSQL connection details (implicitly, as the exact variable name was not specified in the trajectory for PG).  was added.
-
-The architecture has evolved from a MongoDB-centric MVP to a robust, scalable full PostgreSQL solution for all data, while maintaining FastAPI as the backend and React/Tailwind for the frontend, heavily influenced by user-driven UI/UX improvements.
+    -   **Importance**: Stores environment variables like API keys and DB URLs.
+    -   **Changes Made**: Configured , , , . Was temporarily adjusted during the MongoDB-PostgreSQL transitions. PostgreSQL connection details are assumed to be implicitly managed or derived from the environment.
 </code_architecture>
+
 <pending_tasks>
--   Integrate Games support with IGDB API (requires user to provide API keys).
--   Add more advanced progress tracking features (e.g., specific chapter/episode numbers).
+-   Add more advanced progress tracking features (e.g., specific chapter/episode numbers for books/manga, detailed game progress).
 -   Implement social features like friend lists and recommendations.
 -   Implement the Advanced Usage vs Casual Usage mode toggle.
+-   Redesign each media page to display both search results AND the user's saved list for that specific media type.
+-   Ensure search functionality works correctly with individual page states.
 </pending_tasks>
+
 <current_work>
-The Media Trakker application is currently fully functional with a robust, scalable architecture. It features a modern, Apple-inspired UI/UX, including a full dark mode theme with user-customizable settings.
+The Media Trakker application is in the midst of a major architectural overhaul on the frontend, specifically addressing issues related to shared state and page memory. The backend is stable, fully integrated with PostgreSQL and supporting Movies, TV Shows, Anime, Manga, Books, and Games.
 
-**Current State of the Product:**
--   **Media Types Supported**: Movies, TV Shows, Anime, Manga, Books.
--   **Core Functionality**: Users can search for media, add items to their personal lists (with statuses like Watching, Completed, Paused, Planning, Dropped, Reading, Playing), and view basic statistics.
--   **External API Integrations**: Seamlessly fetches data from TMDB (for Movies/TV Shows), AniList (for Anime/Manga), and Google Books (for Books). All external API data is now cached locally within the PostgreSQL database.
--   **Database Architecture**: Utilizes a pure PostgreSQL solution for all data storage, including user profiles, media lists, user preferences (like theme), and cached external API data. All MongoDB dependencies have been completely removed. This provides ACID compliance, strong relational integrity, and better scalability for future growth.
--   **User Interface**:
-    -   **Navigation**: Features a sleek, collapsible sidebar navigation that expands on hover, showing icons when collapsed and full labels when expanded.
-    -   **Dedicated Media Pages**: Each media type (Movies, TV Shows, Anime, Manga, Books) has its own dedicated page.
-    -   **Search**: A context-aware top navigation bar for search is present on each media page.
-    -   **Dashboard/Homepage**: A statistics-focused landing page with modern, gradient-enhanced cards displaying total items, completion rates, media type breakdown, and segregated recent activity (e.g., Recent Movies, Recent Manga).
-    -   **Profile Page**: Fully functional, displaying the user's entire media list, neatly segregated by media type, with interactive controls (status dropdowns, remove buttons).
-    -   **Theme**: The application defaults to a full dark mode with a rich dark gray palette and intelligent contrast.
-    -   **Settings Page**: Allows users to switch between Light and Dark themes, with preferences persisted in the PostgreSQL database. It also includes a Reset to Default option.
--   **UX/UI Nuances**:
-    -   **Apple-like Design**: Employs rounded corners (2xl border radius), subtle shadows, perfect spacing, gradient cards, backdrop blur effects on navigation, and smooth 300ms animations for interactions.
-    -   **Icon Alignment**: Sidebar icons are perfectly centered when minimized, ensuring a clean aesthetic.
-    -   **No Notification Badges**: Unnecessary notification pings have been removed for a cleaner interface.
+**Current State of the Product (after recent user feedback and AI engineer's actions):**
+-   **Backend**: Confirmed to be running on PostgreSQL as requested by the user, and all media type searches (Movies, TV Shows, Anime, Manga, Books, Games) are functional, including the IGDB integration.
+-   **Frontend UI**: Features a sleek collapsible sidebar. Dedicated pages exist for each media type, a Dashboard, and a Profile page. The UI uses an Apple-inspired design and full dark mode.
+-   **Current Problems Being Addressed**:
+    1.  **Shared Search Bar and State**: The previous implementation had a single  state and a shared  component across all media pages. This caused search results to persist across different media type pages (e.g., searching movies, then navigating to games, would still show movie results), which the user deemed lazy programming and unacceptable.
+    2.  **Broken Search Functionality**: As a consequence of the shared state and architectural issues, the search feature was not working as expected across pages.
+    3.  **No Individual Page Memory**: Pages did not retain their own search queries or results when switching between media types.
+    4.  **Missing User Lists on Media Pages**: Media pages currently only show search results, not the user's personal saved list for that specific media type.
 
-The application is in a stable state with a robust backend and a polished, user-friendly frontend.
+**Work Currently In Progress (as of the last message):**
+The AI engineer has understood the user's explicit request for individual page state management and embedded search functionality. The immediate action being taken is to refactor the frontend to eliminate the shared  and embed search directly within each media page.
+Specifically, the AI engineer has removed the  component from 's  section. This is the initial step to ensure each media page manages its own search bar and state independently.
 </current_work>
+
 <optional_next_step>
-Resume Phase 3, focusing on implementing Games support with IGDB integration and other advanced features.
+The next step is to remove the shared TopNavigation and update the ThemeContent to not show it.
 </optional_next_step>
