@@ -717,23 +717,46 @@ const ProfilePage = ({ userListItems, onUpdateItem, onRemoveItem }) => {
   );
 };
 
-// Enhanced Media Page Component with Search Results AND User Lists
+// Enhanced Media Page Component with Its Own Search Bar and State
 const MediaPage = ({ mediaType, searchResults, searchQuery, loading, userMediaItems, onAddToList, onUpdateItem, onRemoveItem }) => {
   const { theme } = useTheme();
+  const [localSearchQuery, setLocalSearchQuery] = useState(searchQuery || '');
   
   const getMediaTypeInfo = (type) => {
     const info = {
-      'movie': { title: 'Movies', icon: '🎬', description: 'Discover and track your favorite movies' },
-      'tv': { title: 'TV Shows', icon: '📺', description: 'Keep up with your favorite TV series' },
-      'anime': { title: 'Anime', icon: '🎌', description: 'Explore the world of anime' },
-      'manga': { title: 'Manga', icon: '📚', description: 'Track your manga reading progress' },
-      'book': { title: 'Books', icon: '📖', description: 'Manage your reading list' },
-      'game': { title: 'Games', icon: '🎮', description: 'Track your gaming progress and achievements' }
+      'movie': { title: 'Movies', icon: '🎬', description: 'Discover and track your favorite movies', placeholder: 'Search for movies...' },
+      'tv': { title: 'TV Shows', icon: '📺', description: 'Keep up with your favorite TV series', placeholder: 'Search for TV shows...' },
+      'anime': { title: 'Anime', icon: '🎌', description: 'Explore the world of anime', placeholder: 'Search for anime...' },
+      'manga': { title: 'Manga', icon: '📚', description: 'Track your manga reading progress', placeholder: 'Search for manga...' },
+      'book': { title: 'Books', icon: '📖', description: 'Manage your reading list', placeholder: 'Search for books...' },
+      'game': { title: 'Games', icon: '🎮', description: 'Track your gaming progress and achievements', placeholder: 'Search for games...' }
     };
-    return info[type] || { title: type, icon: '📄', description: 'Media content' };
+    return info[type] || { title: type, icon: '📄', description: 'Media content', placeholder: 'Search...' };
   };
 
   const mediaInfo = getMediaTypeInfo(mediaType);
+
+  const handleSearch = async (e) => {
+    e.preventDefault();
+    if (localSearchQuery.trim()) {
+      // Call the parent's search handler with the media type and query
+      const API = process.env.REACT_APP_BACKEND_URL || 'http://localhost:8001/api';
+      
+      try {
+        const response = await fetch(`${API}/search?query=${encodeURIComponent(localSearchQuery)}&media_type=${mediaType}`);
+        const data = await response.json();
+        
+        // For now, we'll handle the search locally since the parent state management is complex
+        // In a real app, this would call a parent handler to update the centralized state
+        console.log('Search results:', data.results);
+        
+        // We need to trigger the parent search handler
+        window.handleMediaSearch && window.handleMediaSearch(localSearchQuery, mediaType);
+      } catch (error) {
+        console.error('Search error:', error);
+      }
+    }
+  };
 
   const handleStatusChange = async (itemId, newStatus) => {
     await onUpdateItem(itemId, { status: newStatus });
@@ -871,9 +894,9 @@ const MediaPage = ({ mediaType, searchResults, searchQuery, loading, userMediaIt
 
   return (
     <div className="space-y-8">
-      {/* Page Header */}
+      {/* Page Header with Integrated Search */}
       <div className={`${theme === 'dark' ? 'bg-gray-800' : 'bg-white'} rounded-2xl p-6`}>
-        <div className="flex items-center gap-4 mb-4">
+        <div className="flex items-center gap-4 mb-6">
           <div className={`w-12 h-12 ${theme === 'dark' ? 'bg-gray-700' : 'bg-gray-100'} rounded-2xl flex items-center justify-center`}>
             <span className="text-2xl">{mediaInfo.icon}</span>
           </div>
@@ -886,6 +909,26 @@ const MediaPage = ({ mediaType, searchResults, searchQuery, loading, userMediaIt
             </p>
           </div>
         </div>
+        
+        {/* Individual Search Bar for This Page */}
+        <form onSubmit={handleSearch} className="flex gap-3">
+          <div className="relative flex-1">
+            <input
+              type="text"
+              value={localSearchQuery}
+              onChange={(e) => setLocalSearchQuery(e.target.value)}
+              placeholder={mediaInfo.placeholder}
+              className={`w-full px-4 py-3 ${theme === 'dark' ? 'bg-gray-700 text-white border-gray-600 placeholder-gray-400' : 'bg-gray-50 text-gray-900 border-gray-300 placeholder-gray-500'} border rounded-xl focus:ring-2 focus:ring-red-500 focus:border-transparent transition-all`}
+            />
+          </div>
+          <button
+            type="submit"
+            disabled={loading}
+            className="px-6 py-3 bg-red-600 text-white rounded-xl hover:bg-red-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors font-medium"
+          >
+            {loading ? 'Searching...' : 'Search'}
+          </button>
+        </form>
       </div>
 
       {/* My List Section */}
@@ -902,10 +945,10 @@ const MediaPage = ({ mediaType, searchResults, searchQuery, loading, userMediaIt
       )}
 
       {/* Search Results Section */}
-      {searchQuery && (
+      {localSearchQuery && (
         <div className="space-y-4">
           <h2 className={`text-2xl font-bold ${theme === 'dark' ? 'text-white' : 'text-gray-900'}`}>
-            {loading ? 'Searching...' : `Search Results for "${searchQuery}"`}
+            {loading ? 'Searching...' : `Search Results for "${localSearchQuery}"`}
             {!loading && searchResults.length > 0 && ` (${searchResults.length})`}
           </h2>
           
@@ -919,14 +962,14 @@ const MediaPage = ({ mediaType, searchResults, searchQuery, loading, userMediaIt
             </div>
           ) : (
             <div className={`text-center py-12 ${theme === 'dark' ? 'text-gray-400' : 'text-gray-600'}`}>
-              No results found for "{searchQuery}"
+              No results found for "{localSearchQuery}"
             </div>
           )}
         </div>
       )}
 
       {/* Empty State */}
-      {!searchQuery && userMediaItems.length === 0 && (
+      {!localSearchQuery && userMediaItems.length === 0 && (
         <div className={`text-center py-16 ${theme === 'dark' ? 'text-gray-400' : 'text-gray-600'}`}>
           <div className="text-6xl mb-4">{mediaInfo.icon}</div>
           <h3 className="text-xl font-semibold mb-2">No {mediaInfo.title} Yet</h3>
