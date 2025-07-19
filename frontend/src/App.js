@@ -664,7 +664,8 @@ const ProfilePage = ({ userListItems, onUpdateItem, onRemoveItem }) => {
   );
 };
 
-const MediaPage = ({ mediaType, searchResults }) => {
+// Enhanced Media Page Component with Search Results AND User Lists
+const MediaPage = ({ mediaType, searchResults, searchQuery, loading, userMediaItems, onAddToList, onUpdateItem, onRemoveItem }) => {
   const { theme } = useTheme();
   
   const getMediaTypeInfo = (type) => {
@@ -681,84 +682,202 @@ const MediaPage = ({ mediaType, searchResults }) => {
 
   const mediaInfo = getMediaTypeInfo(mediaType);
 
-  return (
-    <div className={`space-y-6 max-w-6xl mx-auto ${theme === 'dark' ? 'text-white' : 'text-gray-900'}`}>
-      {searchResults.length > 0 ? (
-        <div className="space-y-6">
-          <h2 className="text-xl font-semibold">Search Results</h2>
-          <div className="grid gap-6">
-            {searchResults.map(media => (
-              <div key={media.id} className={`${theme === 'dark' ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-100'} rounded-2xl shadow-sm border p-6 hover:shadow-md transition-all duration-200`}>
-                <div className="flex gap-6">
-                  {media.poster_path && (
-                    <img
-                      src={media.poster_path}
-                      alt={media.title}
-                      className="w-24 h-36 object-cover rounded-xl shadow-sm"
-                    />
-                  )}
-                  <div className="flex-1">
-                    <h3 className="text-xl font-semibold mb-2">{media.title}</h3>
-                    <p className={`${theme === 'dark' ? 'text-gray-400' : 'text-gray-600'} mb-3`}>{media.year}</p>
-                    {media.genres && media.genres.length > 0 && (
-                      <div className="flex flex-wrap gap-2 mb-3">
-                        {media.genres.slice(0, 3).map(genre => (
-                          <span key={genre} className={`px-3 py-1 ${theme === 'dark' ? 'bg-gray-700 text-gray-300' : 'bg-gray-100 text-gray-700'} rounded-full text-sm`}>
-                            {genre}
-                          </span>
-                        ))}
-                      </div>
-                    )}
-                    {/* Game-specific information */}
-                    {media.platforms && media.platforms.length > 0 && (
-                      <div className="mb-3">
-                        <p className={`text-sm font-medium ${theme === 'dark' ? 'text-gray-300' : 'text-gray-700'} mb-1`}>Platforms:</p>
-                        <div className="flex flex-wrap gap-2">
-                          {media.platforms.slice(0, 4).map(platform => (
-                            <span key={platform} className={`px-2 py-1 ${theme === 'dark' ? 'bg-blue-900 text-blue-200' : 'bg-blue-100 text-blue-700'} rounded text-xs`}>
-                              {platform}
-                            </span>
-                          ))}
-                        </div>
-                      </div>
-                    )}
-                    {media.developers && media.developers.length > 0 && (
-                      <div className="mb-3">
-                        <p className={`text-sm ${theme === 'dark' ? 'text-gray-400' : 'text-gray-600'}`}>
-                          <span className="font-medium">Developer:</span> {media.developers.join(', ')}
-                        </p>
-                      </div>
-                    )}
-                    {media.publishers && media.publishers.length > 0 && (
-                      <div className="mb-3">
-                        <p className={`text-sm ${theme === 'dark' ? 'text-gray-400' : 'text-gray-600'}`}>
-                          <span className="font-medium">Publisher:</span> {media.publishers.join(', ')}
-                        </p>
-                      </div>
-                    )}
-                    {media.vote_average && (
-                      <p className="text-sm text-yellow-600 mb-4 flex items-center gap-1">
-                        <span>⭐</span>
-                        <span>{media.vote_average.toFixed(1)}/10</span>
-                      </p>
-                    )}
-                    <button className="px-6 py-2.5 bg-green-600 text-white rounded-xl hover:bg-green-700 transition-colors font-medium shadow-sm">
-                      Add to List
-                    </button>
-                  </div>
+  const handleStatusChange = async (itemId, newStatus) => {
+    await onUpdateItem(itemId, { status: newStatus });
+  };
+
+  const handleRemove = async (itemId) => {
+    if (window.confirm('Are you sure you want to remove this item from your list?')) {
+      await onRemoveItem(itemId);
+    }
+  };
+
+  const renderMediaCard = (media, isUserItem = false) => {
+    const isInUserList = userMediaItems.some(item => item.media_item.external_id === media.external_id);
+    
+    return (
+      <div key={media.id} className={`${theme === 'dark' ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'} rounded-2xl border p-6 hover:shadow-lg transition-all duration-200`}>
+        <div className="flex gap-4">
+          {media.poster_path && (
+            <img
+              src={media.poster_path}
+              alt={media.title}
+              className="w-24 h-36 object-cover rounded-xl flex-shrink-0"
+            />
+          )}
+          
+          <div className="flex-1">
+            <h3 className={`text-lg font-semibold mb-2 ${theme === 'dark' ? 'text-white' : 'text-gray-900'}`}>
+              {media.title}
+            </h3>
+            
+            {media.year && (
+              <p className={`text-sm ${theme === 'dark' ? 'text-gray-400' : 'text-gray-600'} mb-2`}>
+                {media.year}
+              </p>
+            )}
+            
+            {media.overview && (
+              <p className={`text-sm ${theme === 'dark' ? 'text-gray-300' : 'text-gray-700'} mb-3 line-clamp-2`}>
+                {media.overview}
+              </p>
+            )}
+            
+            {media.genres && media.genres.length > 0 && (
+              <div className="flex flex-wrap gap-2 mb-3">
+                {media.genres.slice(0, 3).map(genre => (
+                  <span key={genre} className={`px-3 py-1 ${theme === 'dark' ? 'bg-gray-700 text-gray-300' : 'bg-gray-100 text-gray-700'} rounded-full text-sm`}>
+                    {genre}
+                  </span>
+                ))}
+              </div>
+            )}
+            
+            {/* Game-specific information */}
+            {media.platforms && media.platforms.length > 0 && (
+              <div className="mb-3">
+                <p className={`text-sm font-medium ${theme === 'dark' ? 'text-gray-300' : 'text-gray-700'} mb-1`}>Platforms:</p>
+                <div className="flex flex-wrap gap-2">
+                  {media.platforms.slice(0, 4).map(platform => (
+                    <span key={platform} className={`px-2 py-1 ${theme === 'dark' ? 'bg-blue-900 text-blue-200' : 'bg-blue-100 text-blue-700'} rounded text-xs`}>
+                      {platform}
+                    </span>
+                  ))}
                 </div>
               </div>
-            ))}
+            )}
+            
+            {media.developers && media.developers.length > 0 && (
+              <div className="mb-3">
+                <p className={`text-sm ${theme === 'dark' ? 'text-gray-400' : 'text-gray-600'}`}>
+                  <span className="font-medium">Developer:</span> {media.developers.join(', ')}
+                </p>
+              </div>
+            )}
+            
+            {media.publishers && media.publishers.length > 0 && (
+              <div className="mb-3">
+                <p className={`text-sm ${theme === 'dark' ? 'text-gray-400' : 'text-gray-600'}`}>
+                  <span className="font-medium">Publisher:</span> {media.publishers.join(', ')}
+                </p>
+              </div>
+            )}
+            
+            {media.vote_average && (
+              <p className="text-sm text-yellow-600 mb-4 flex items-center gap-1">
+                <span>⭐</span>
+                <span>{media.vote_average.toFixed(1)}/10</span>
+              </p>
+            )}
+            
+            {/* Action Buttons */}
+            <div className="flex gap-2">
+              {isUserItem ? (
+                // User list item actions
+                <>
+                  <select
+                    value={isUserItem.list_item?.status || 'planning'}
+                    onChange={(e) => handleStatusChange(isUserItem.list_item.id, e.target.value)}
+                    className={`px-3 py-2 ${theme === 'dark' ? 'bg-gray-700 text-white border-gray-600' : 'bg-gray-100 text-gray-900 border-gray-300'} border rounded-lg text-sm`}
+                  >
+                    <option value="planning">Planning</option>
+                    <option value="watching">Watching</option>
+                    <option value="completed">Completed</option>
+                    <option value="paused">Paused</option>
+                    <option value="dropped">Dropped</option>
+                    {mediaType === 'game' && <option value="playing">Playing</option>}
+                    {(mediaType === 'book' || mediaType === 'manga') && <option value="reading">Reading</option>}
+                  </select>
+                  <button
+                    onClick={() => handleRemove(isUserItem.list_item.id)}
+                    className="px-3 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors text-sm"
+                  >
+                    Remove
+                  </button>
+                </>
+              ) : (
+                // Search result actions
+                <button
+                  onClick={() => onAddToList(media)}
+                  disabled={isInUserList}
+                  className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+                    isInUserList 
+                      ? 'bg-gray-500 text-white cursor-not-allowed' 
+                      : 'bg-green-600 text-white hover:bg-green-700'
+                  }`}
+                >
+                  {isInUserList ? 'In List' : 'Add to List'}
+                </button>
+              )}
+            </div>
           </div>
         </div>
-      ) : (
-        <div className="text-center py-20">
-          <div className={`w-20 h-20 ${theme === 'dark' ? 'bg-gray-800' : 'bg-gradient-to-br from-gray-100 to-gray-200'} rounded-3xl flex items-center justify-center mx-auto mb-6`}>
-            <span className="text-3xl">{mediaInfo.icon}</span>
+      </div>
+    );
+  };
+
+  return (
+    <div className="space-y-8">
+      {/* Page Header */}
+      <div className={`${theme === 'dark' ? 'bg-gray-800' : 'bg-white'} rounded-2xl p-6`}>
+        <div className="flex items-center gap-4 mb-4">
+          <div className={`w-12 h-12 ${theme === 'dark' ? 'bg-gray-700' : 'bg-gray-100'} rounded-2xl flex items-center justify-center`}>
+            <span className="text-2xl">{mediaInfo.icon}</span>
           </div>
-          <h2 className="text-2xl font-semibold mb-3">Search for {mediaInfo.title}</h2>
-          <p className={`${theme === 'dark' ? 'text-gray-400' : 'text-gray-600'} mb-2`}>{mediaInfo.description}</p>
-          <p className={`text-sm ${theme === 'dark' ? 'text-gray-500' : 'text-gray-500'}`}>Use the search bar above to find and add {mediaInfo.title.toLowerCase()} to your list!</p>
+          <div>
+            <h1 className={`text-3xl font-bold ${theme === 'dark' ? 'text-white' : 'text-gray-900'}`}>
+              {mediaInfo.title}
+            </h1>
+            <p className={`${theme === 'dark' ? 'text-gray-400' : 'text-gray-600'}`}>
+              {mediaInfo.description}
+            </p>
+          </div>
+        </div>
+      </div>
+
+      {/* My List Section */}
+      {userMediaItems.length > 0 && (
+        <div className="space-y-4">
+          <h2 className={`text-2xl font-bold ${theme === 'dark' ? 'text-white' : 'text-gray-900'}`}>
+            My {mediaInfo.title} ({userMediaItems.length})
+          </h2>
+          
+          <div className="space-y-4">
+            {userMediaItems.map(item => renderMediaCard(item.media_item, item))}
+          </div>
+        </div>
+      )}
+
+      {/* Search Results Section */}
+      {searchQuery && (
+        <div className="space-y-4">
+          <h2 className={`text-2xl font-bold ${theme === 'dark' ? 'text-white' : 'text-gray-900'}`}>
+            {loading ? 'Searching...' : `Search Results for "${searchQuery}"`}
+            {!loading && searchResults.length > 0 && ` (${searchResults.length})`}
+          </h2>
+          
+          {loading ? (
+            <div className="flex justify-center py-12">
+              <div className="w-8 h-8 border-4 border-red-600 border-t-transparent rounded-full animate-spin"></div>
+            </div>
+          ) : searchResults.length > 0 ? (
+            <div className="space-y-4">
+              {searchResults.map(media => renderMediaCard(media))}
+            </div>
+          ) : (
+            <div className={`text-center py-12 ${theme === 'dark' ? 'text-gray-400' : 'text-gray-600'}`}>
+              No results found for "{searchQuery}"
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Empty State */}
+      {!searchQuery && userMediaItems.length === 0 && (
+        <div className={`text-center py-16 ${theme === 'dark' ? 'text-gray-400' : 'text-gray-600'}`}>
+          <div className="text-6xl mb-4">{mediaInfo.icon}</div>
+          <h3 className="text-xl font-semibold mb-2">No {mediaInfo.title} Yet</h3>
+          <p>Use the search bar above to discover and add {mediaInfo.title.toLowerCase()} to your list!</p>
         </div>
       )}
     </div>
