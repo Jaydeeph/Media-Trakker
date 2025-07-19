@@ -768,10 +768,18 @@ const MediaPage = ({ mediaType, searchResults }) => {
 // Main App Component
 function App() {
   const [currentPage, setCurrentPage] = useState('dashboard');
-  const [searchResults, setSearchResults] = useState([]);
   const [userListItems, setUserListItems] = useState([]);
   const [stats, setStats] = useState({});
-  const [loading, setLoading] = useState(false);
+  
+  // Individual state for each media type
+  const [mediaStates, setMediaStates] = useState({
+    movie: { searchResults: [], searchQuery: '', loading: false },
+    tv: { searchResults: [], searchQuery: '', loading: false },
+    anime: { searchResults: [], searchQuery: '', loading: false },
+    manga: { searchResults: [], searchQuery: '', loading: false },
+    book: { searchResults: [], searchQuery: '', loading: false },
+    game: { searchResults: [], searchQuery: '', loading: false }
+  });
 
   useEffect(() => {
     loadUserList();
@@ -797,16 +805,55 @@ function App() {
   };
 
   const handleSearch = async (query, mediaType) => {
-    setLoading(true);
+    // Update the loading state for the specific media type
+    setMediaStates(prev => ({
+      ...prev,
+      [mediaType]: { ...prev[mediaType], loading: true, searchQuery: query }
+    }));
+
     try {
       const response = await axios.get(`${API}/search`, {
         params: { query, media_type: mediaType }
       });
-      setSearchResults(response.data.results);
+      
+      // Update search results for the specific media type
+      setMediaStates(prev => ({
+        ...prev,
+        [mediaType]: { 
+          ...prev[mediaType], 
+          searchResults: response.data.results, 
+          loading: false 
+        }
+      }));
     } catch (error) {
       console.error('Error searching:', error);
-    } finally {
-      setLoading(false);
+      setMediaStates(prev => ({
+        ...prev,
+        [mediaType]: { ...prev[mediaType], loading: false }
+      }));
+    }
+  };
+
+  const handleAddToList = async (mediaItem, status = 'planning') => {
+    try {
+      await axios.post(`${API}/user-list`, {
+        media_id: mediaItem.id,
+        media_type: mediaItem.media_type,
+        status: status
+      });
+      
+      // Reload user list and stats
+      loadUserList();
+      loadStats();
+      
+      alert('Added to your list!');
+    } catch (error) {
+      console.error('Error adding to list:', error);
+      if (error.response?.data?.detail?.includes('already in your list')) {
+        alert('This item is already in your list!');
+      } else {
+        alert('Error adding to list');
+      }
     }
   };
 
