@@ -209,7 +209,7 @@ const TopNavigation = ({ currentPage, onSearch, loading }) => {
   );
 };
 
-// Dark Theme Dashboard
+// Enhanced Dashboard with Detailed Statistics
 const Dashboard = ({ stats, userListItems }) => {
   const { theme } = useTheme();
   
@@ -229,204 +229,257 @@ const Dashboard = ({ stats, userListItems }) => {
     return total > 0 ? Math.round((completed / total) * 100) : 0;
   };
 
-  const getMediaStats = () => {
-    return Object.entries(stats).map(([mediaType, statsByStatus]) => {
-      const count = Object.values(statsByStatus).reduce((sum, val) => sum + val, 0);
-      const completed = statsByStatus.completed || 0;
-      const completionRate = count > 0 ? Math.round((completed / count) * 100) : 0;
-      
-      const mediaLabels = {
-        'movie': { name: 'Movies', icon: '🎬', color: 'from-blue-500 to-blue-600', bgColor: theme === 'dark' ? 'bg-blue-900/20' : 'bg-blue-50', textColor: 'text-blue-600' },
-        'tv': { name: 'TV Shows', icon: '📺', color: 'from-purple-500 to-purple-600', bgColor: theme === 'dark' ? 'bg-purple-900/20' : 'bg-purple-50', textColor: 'text-purple-600' },
-        'anime': { name: 'Anime', icon: '🎌', color: 'from-pink-500 to-pink-600', bgColor: theme === 'dark' ? 'bg-pink-900/20' : 'bg-pink-50', textColor: 'text-pink-600' },
-        'manga': { name: 'Manga', icon: '📚', color: 'from-orange-500 to-orange-600', bgColor: theme === 'dark' ? 'bg-orange-900/20' : 'bg-orange-50', textColor: 'text-orange-600' },
-        'book': { name: 'Books', icon: '📖', color: 'from-green-500 to-green-600', bgColor: theme === 'dark' ? 'bg-green-900/20' : 'bg-green-50', textColor: 'text-green-600' },
-        'game': { name: 'Games', icon: '🎮', color: 'from-indigo-500 to-indigo-600', bgColor: theme === 'dark' ? 'bg-indigo-900/20' : 'bg-indigo-50', textColor: 'text-indigo-600' }
-      };
+  const getMediaTypeStats = () => {
+    const mediaLabels = {
+      'movie': { name: 'Movies', icon: '🎬', bgColor: 'bg-red-500' },
+      'tv': { name: 'TV Shows', icon: '📺', bgColor: 'bg-blue-500' },
+      'anime': { name: 'Anime', icon: '🎌', bgColor: 'bg-purple-500' },
+      'manga': { name: 'Manga', icon: '📚', bgColor: 'bg-green-500' },
+      'book': { name: 'Books', icon: '📖', bgColor: 'bg-yellow-500' },
+      'game': { name: 'Games', icon: '🎮', bgColor: 'bg-indigo-500' }
+    };
+
+    return Object.entries(stats).map(([mediaType, statusCounts]) => {
+      const label = mediaLabels[mediaType] || { name: mediaType, icon: '📄', bgColor: 'bg-gray-500' };
+      const total = Object.values(statusCounts).reduce((sum, count) => sum + count, 0);
+      const completed = statusCounts.completed || 0;
+      const completionRate = total > 0 ? Math.round((completed / total) * 100) : 0;
       
       return {
-        type: mediaType,
-        count,
+        ...label,
+        mediaType,
+        total,
         completed,
         completionRate,
-        ...mediaLabels[mediaType] || { name: mediaType, icon: '📄', color: 'from-gray-500 to-gray-600', bgColor: theme === 'dark' ? 'bg-gray-800' : 'bg-gray-50', textColor: 'text-gray-600' }
+        statusCounts
       };
-    });
+    }).filter(item => item.total > 0);
   };
 
-  const getRecentActivityByMedia = () => {
-    const activityByMedia = {};
+  const getRecentActivity = () => {
+    const sortedItems = [...userListItems].sort((a, b) => 
+      new Date(b.list_item.updated_at) - new Date(a.list_item.updated_at)
+    );
+    
+    return sortedItems.slice(0, 8);
+  };
+
+  const getActivityByMediaType = () => {
+    const mediaLabels = {
+      'movie': { name: 'Movies', icon: '🎬' },
+      'tv': { name: 'TV Shows', icon: '📺' },
+      'anime': { name: 'Anime', icon: '🎌' },
+      'manga': { name: 'Manga', icon: '📚' },
+      'book': { name: 'Books', icon: '📖' },
+      'game': { name: 'Games', icon: '🎮' }
+    };
+
+    const activityByType = {};
+    
     userListItems.forEach(item => {
       const mediaType = item.media_item.media_type;
-      if (!activityByMedia[mediaType]) {
-        activityByMedia[mediaType] = [];
+      if (!activityByType[mediaType]) {
+        activityByType[mediaType] = [];
       }
-      activityByMedia[mediaType].push(item);
+      activityByType[mediaType].push(item);
     });
-    
-    Object.keys(activityByMedia).forEach(mediaType => {
-      activityByMedia[mediaType] = activityByMedia[mediaType]
-        .sort((a, b) => new Date(b.list_item.created_at) - new Date(a.list_item.created_at))
+
+    // Sort each type by most recent and limit to 3 items
+    Object.keys(activityByType).forEach(type => {
+      activityByType[type] = activityByType[type]
+        .sort((a, b) => new Date(b.list_item.updated_at) - new Date(a.list_item.updated_at))
         .slice(0, 3);
     });
-    
-    return activityByMedia;
+
+    return { activityByType, mediaLabels };
   };
 
-  const recentActivityByMedia = getRecentActivityByMedia();
+  const mediaTypeStats = getMediaTypeStats();
+  const recentActivity = getRecentActivity();
+  const { activityByType, mediaLabels } = getActivityByMediaType();
 
   return (
-    <div className={`space-y-8 max-w-7xl mx-auto ${theme === 'dark' ? 'text-white' : 'text-gray-900'}`}>
-      <div>
-        <h1 className="text-3xl font-bold mb-2">Dashboard</h1>
-        <p className={theme === 'dark' ? 'text-gray-400' : 'text-gray-600'}>Track your media consumption journey</p>
+    <div className="space-y-8">
+      {/* Welcome Header */}
+      <div className={`${theme === 'dark' ? 'bg-gray-800' : 'bg-white'} rounded-2xl p-6`}>
+        <h1 className={`text-3xl font-bold mb-2 ${theme === 'dark' ? 'text-white' : 'text-gray-900'}`}>
+          Welcome back! 👋
+        </h1>
+        <p className={`${theme === 'dark' ? 'text-gray-400' : 'text-gray-600'}`}>
+          Here's your media tracking overview
+        </p>
       </div>
 
-      {/* Dark Theme Statistics Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        <div className="bg-gradient-to-br from-red-500 to-red-600 rounded-2xl p-6 text-white shadow-lg hover:shadow-xl transition-all duration-300">
+      {/* Overview Stats */}
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+        <div className={`${theme === 'dark' ? 'bg-gray-800' : 'bg-white'} rounded-2xl p-6`}>
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-red-100 text-sm font-medium opacity-90">Total Items</p>
-              <p className="text-3xl font-bold mt-1">{totalItems}</p>
+              <p className={`text-sm ${theme === 'dark' ? 'text-gray-400' : 'text-gray-600'} mb-1`}>Total Items</p>
+              <p className={`text-3xl font-bold ${theme === 'dark' ? 'text-white' : 'text-gray-900'}`}>
+                {totalItems}
+              </p>
             </div>
-            <div className="w-12 h-12 bg-white/20 rounded-2xl flex items-center justify-center">
-              <span className="text-2xl">📊</span>
+            <div className="w-12 h-12 bg-gradient-to-br from-red-500 to-red-600 rounded-2xl flex items-center justify-center">
+              <span className="text-xl">📊</span>
             </div>
           </div>
         </div>
 
-        <div className="bg-gradient-to-br from-green-500 to-green-600 rounded-2xl p-6 text-white shadow-lg hover:shadow-xl transition-all duration-300">
+        <div className={`${theme === 'dark' ? 'bg-gray-800' : 'bg-white'} rounded-2xl p-6`}>
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-green-100 text-sm font-medium opacity-90">Completion Rate</p>
-              <p className="text-3xl font-bold mt-1">{getCompletionRate()}%</p>
+              <p className={`text-sm ${theme === 'dark' ? 'text-gray-400' : 'text-gray-600'} mb-1`}>Completion Rate</p>
+              <p className={`text-3xl font-bold ${theme === 'dark' ? 'text-white' : 'text-gray-900'}`}>
+                {getCompletionRate()}%
+              </p>
             </div>
-            <div className="w-12 h-12 bg-white/20 rounded-2xl flex items-center justify-center">
-              <span className="text-2xl">✅</span>
+            <div className="w-12 h-12 bg-gradient-to-br from-green-500 to-green-600 rounded-2xl flex items-center justify-center">
+              <span className="text-xl">✅</span>
             </div>
           </div>
         </div>
 
-        <div className="bg-gradient-to-br from-blue-500 to-blue-600 rounded-2xl p-6 text-white shadow-lg hover:shadow-xl transition-all duration-300">
+        <div className={`${theme === 'dark' ? 'bg-gray-800' : 'bg-white'} rounded-2xl p-6`}>
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-blue-100 text-sm font-medium opacity-90">Media Types</p>
-              <p className="text-3xl font-bold mt-1">{Object.keys(stats).length}</p>
+              <p className={`text-sm ${theme === 'dark' ? 'text-gray-400' : 'text-gray-600'} mb-1`}>Media Types</p>
+              <p className={`text-3xl font-bold ${theme === 'dark' ? 'text-white' : 'text-gray-900'}`}>
+                {mediaTypeStats.length}
+              </p>
             </div>
-            <div className="w-12 h-12 bg-white/20 rounded-2xl flex items-center justify-center">
-              <span className="text-2xl">🎭</span>
+            <div className="w-12 h-12 bg-gradient-to-br from-blue-500 to-blue-600 rounded-2xl flex items-center justify-center">
+              <span className="text-xl">🎭</span>
             </div>
           </div>
         </div>
 
-        <div className="bg-gradient-to-br from-purple-500 to-purple-600 rounded-2xl p-6 text-white shadow-lg hover:shadow-xl transition-all duration-300">
+        <div className={`${theme === 'dark' ? 'bg-gray-800' : 'bg-white'} rounded-2xl p-6`}>
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-purple-100 text-sm font-medium opacity-90">This Week</p>
-              <p className="text-3xl font-bold mt-1">{Math.min(userListItems.length, 12)}</p>
+              <p className={`text-sm ${theme === 'dark' ? 'text-gray-400' : 'text-gray-600'} mb-1`}>Recent Activity</p>
+              <p className={`text-3xl font-bold ${theme === 'dark' ? 'text-white' : 'text-gray-900'}`}>
+                {recentActivity.length}
+              </p>
             </div>
-            <div className="w-12 h-12 bg-white/20 rounded-2xl flex items-center justify-center">
-              <span className="text-2xl">⚡</span>
+            <div className="w-12 h-12 bg-gradient-to-br from-purple-500 to-purple-600 rounded-2xl flex items-center justify-center">
+              <span className="text-xl">⚡</span>
             </div>
           </div>
         </div>
       </div>
 
-      {/* Media Collection Progress */}
-      <div className={`${theme === 'dark' ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-100'} rounded-2xl shadow-sm border p-6`}>
-        <h2 className="text-xl font-semibold mb-6">Media Collection</h2>
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {getMediaStats().map(media => (
-            <div key={media.type} className={`${media.bgColor} rounded-2xl p-5 hover:shadow-md transition-all duration-200`}>
-              <div className="flex items-center justify-between mb-4">
-                <div className="flex items-center gap-3">
-                  <div className={`w-10 h-10 ${theme === 'dark' ? 'bg-gray-800/80' : 'bg-white/80'} rounded-xl flex items-center justify-center`}>
-                    <span className="text-xl">{media.icon}</span>
+      {/* Detailed Media Type Breakdown */}
+      <div className={`${theme === 'dark' ? 'bg-gray-800' : 'bg-white'} rounded-2xl p-6`}>
+        <h2 className={`text-2xl font-bold mb-6 ${theme === 'dark' ? 'text-white' : 'text-gray-900'}`}>
+          Media Type Breakdown
+        </h2>
+        
+        {mediaTypeStats.length > 0 ? (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {mediaTypeStats.map((media) => (
+              <div key={media.mediaType} className={`${theme === 'dark' ? 'bg-gray-700' : 'bg-gray-50'} rounded-xl p-4`}>
+                <div className="flex items-center gap-3 mb-4">
+                  <div className={`w-10 h-10 ${media.bgColor} rounded-xl flex items-center justify-center`}>
+                    <span className="text-lg">{media.icon}</span>
                   </div>
-                  <span className={`font-semibold ${theme === 'dark' ? 'text-white' : 'text-gray-900'}`}>{media.name}</span>
+                  <div>
+                    <h3 className={`font-semibold ${theme === 'dark' ? 'text-white' : 'text-gray-900'}`}>
+                      {media.name}
+                    </h3>
+                    <p className={`text-sm ${theme === 'dark' ? 'text-gray-400' : 'text-gray-600'}`}>
+                      {media.total} items • {media.completionRate}% complete
+                    </p>
+                  </div>
                 </div>
-                <span className={`text-2xl font-bold ${theme === 'dark' ? 'text-white' : 'text-gray-900'}`}>{media.count}</span>
-              </div>
-              
-              <div className="space-y-3">
-                <div className={`flex justify-between text-sm ${theme === 'dark' ? 'text-gray-300' : 'text-gray-600'}`}>
-                  <span>Completed</span>
-                  <span className="font-medium">{media.completed}/{media.count}</span>
-                </div>
-                <div className={`w-full ${theme === 'dark' ? 'bg-gray-700/60' : 'bg-white/60'} rounded-full h-2.5`}>
-                  <div 
-                    className={`bg-gradient-to-r ${media.color} h-2.5 rounded-full transition-all duration-500 ease-out`}
-                    style={{ width: `${media.completionRate}%` }}
-                  ></div>
-                </div>
-                <div className={`text-right text-xs ${theme === 'dark' ? 'text-gray-400' : 'text-gray-500'} font-medium`}>
-                  {media.completionRate}% complete
-                </div>
-              </div>
-            </div>
-          ))}
-        </div>
-      </div>
-
-      {/* Segregated Recent Activity */}
-      <div className={`${theme === 'dark' ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-100'} rounded-2xl shadow-sm border p-6`}>
-        <h2 className="text-xl font-semibold mb-6">Recent Activity</h2>
-        {Object.keys(recentActivityByMedia).length > 0 ? (
-          <div className="space-y-6">
-            {Object.entries(recentActivityByMedia).map(([mediaType, items]) => {
-              const mediaInfo = getMediaStats().find(m => m.type === mediaType);
-              return (
-                <div key={mediaType} className="space-y-3">
-                  <div className="flex items-center gap-2">
-                    <span className="text-lg">{mediaInfo?.icon}</span>
-                    <h3 className={`font-semibold ${theme === 'dark' ? 'text-white' : 'text-gray-900'}`}>{mediaInfo?.name}</h3>
-                    <div className={`px-2 py-1 rounded-full text-xs font-medium ${mediaInfo?.bgColor} ${mediaInfo?.textColor}`}>
-                      {items.length} recent
+                
+                <div className="space-y-2">
+                  {Object.entries(media.statusCounts).map(([status, count]) => (
+                    <div key={status} className="flex justify-between items-center">
+                      <span className={`text-sm capitalize ${theme === 'dark' ? 'text-gray-300' : 'text-gray-700'}`}>
+                        {status}
+                      </span>
+                      <span className={`text-sm font-medium ${theme === 'dark' ? 'text-white' : 'text-gray-900'}`}>
+                        {count}
+                      </span>
                     </div>
+                  ))}
+                </div>
+                
+                {/* Progress bar */}
+                <div className="mt-4">
+                  <div className={`w-full h-2 ${theme === 'dark' ? 'bg-gray-600' : 'bg-gray-200'} rounded-full overflow-hidden`}>
+                    <div 
+                      className="h-full bg-green-500 transition-all duration-300"
+                      style={{ width: `${media.completionRate}%` }}
+                    ></div>
                   </div>
-                  <div className="grid gap-3">
-                    {items.map(item => (
-                      <div key={item.list_item.id} className={`flex items-center gap-4 p-3 ${theme === 'dark' ? 'bg-gray-700 hover:bg-gray-600' : 'bg-gray-50 hover:bg-gray-100'} rounded-xl transition-colors`}>
+                </div>
+              </div>
+            ))}
+          </div>
+        ) : (
+          <div className={`text-center py-8 ${theme === 'dark' ? 'text-gray-400' : 'text-gray-600'}`}>
+            <div className="text-4xl mb-2">🎬</div>
+            <p>No media in your collection yet. Start adding some!</p>
+          </div>
+        )}
+      </div>
+
+      {/* Recent Activity by Media Type */}
+      {Object.keys(activityByType).length > 0 && (
+        <div className={`${theme === 'dark' ? 'bg-gray-800' : 'bg-white'} rounded-2xl p-6`}>
+          <h2 className={`text-2xl font-bold mb-6 ${theme === 'dark' ? 'text-white' : 'text-gray-900'}`}>
+            Recent Activity by Type
+          </h2>
+          
+          <div className="space-y-6">
+            {Object.entries(activityByType).map(([mediaType, items]) => (
+              <div key={mediaType}>
+                <div className="flex items-center gap-2 mb-3">
+                  <span className="text-lg">{mediaLabels[mediaType]?.icon}</span>
+                  <h3 className={`font-semibold ${theme === 'dark' ? 'text-white' : 'text-gray-900'}`}>
+                    Recent {mediaLabels[mediaType]?.name}
+                  </h3>
+                </div>
+                
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  {items.map((item) => (
+                    <div key={item.list_item.id} className={`${theme === 'dark' ? 'bg-gray-700' : 'bg-gray-50'} rounded-xl p-4`}>
+                      <div className="flex gap-3">
                         {item.media_item.poster_path && (
                           <img
                             src={item.media_item.poster_path}
                             alt={item.media_item.title}
-                            className="w-12 h-16 object-cover rounded-lg shadow-sm"
+                            className="w-12 h-16 object-cover rounded-lg flex-shrink-0"
                           />
                         )}
-                        <div className="flex-1">
-                          <h4 className={`font-medium ${theme === 'dark' ? 'text-white' : 'text-gray-900'}`}>{item.media_item.title}</h4>
-                          <div className="flex items-center gap-2 mt-1">
-                            <span className={`px-2 py-1 rounded-lg text-xs font-medium ${
-                              item.list_item.status === 'completed' ? 'bg-green-100 text-green-700' :
-                              item.list_item.status === 'watching' || item.list_item.status === 'reading' ? 'bg-blue-100 text-blue-700' :
-                              'bg-gray-100 text-gray-700'
-                            }`}>
-                              {item.list_item.status}
-                            </span>
-                            <span className={`text-xs ${theme === 'dark' ? 'text-gray-400' : 'text-gray-500'}`}>
-                              {new Date(item.list_item.created_at).toLocaleDateString()}
-                            </span>
-                          </div>
+                        <div className="flex-1 min-w-0">
+                          <h4 className={`font-medium text-sm mb-1 truncate ${theme === 'dark' ? 'text-white' : 'text-gray-900'}`}>
+                            {item.media_item.title}
+                          </h4>
+                          <p className={`text-xs mb-1 ${theme === 'dark' ? 'text-gray-400' : 'text-gray-600'}`}>
+                            {item.media_item.year}
+                          </p>
+                          <span className={`inline-block px-2 py-1 text-xs rounded-full capitalize ${
+                            item.list_item.status === 'completed' ? 'bg-green-100 text-green-800' :
+                            item.list_item.status === 'watching' || item.list_item.status === 'reading' || item.list_item.status === 'playing' ? 'bg-blue-100 text-blue-800' :
+                            item.list_item.status === 'paused' ? 'bg-yellow-100 text-yellow-800' :
+                            item.list_item.status === 'dropped' ? 'bg-red-100 text-red-800' :
+                            'bg-gray-100 text-gray-800'
+                          }`}>
+                            {item.list_item.status}
+                          </span>
                         </div>
                       </div>
-                    ))}
-                  </div>
+                    </div>
+                  ))}
                 </div>
-              );
-            })}
+              </div>
+            ))}
           </div>
-        ) : (
-          <div className={`text-center py-12 ${theme === 'dark' ? 'text-gray-400' : 'text-gray-500'}`}>
-            <div className={`w-16 h-16 ${theme === 'dark' ? 'bg-gray-700' : 'bg-gray-100'} rounded-2xl flex items-center justify-center mx-auto mb-4`}>
-              <span className="text-2xl">🎬</span>
-            </div>
-            <p className="font-medium">No recent activity</p>
-            <p className="text-sm">Start adding some media to your lists!</p>
-          </div>
-        )}
-      </div>
+        </div>
+      )}
     </div>
   );
 };
