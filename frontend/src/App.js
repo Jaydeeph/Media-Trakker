@@ -1096,7 +1096,11 @@ function App() {
         currentPage={currentPage}
         setCurrentPage={setCurrentPage}
         onSearch={handleSearch}
-        loading={mediaStates[currentPage === 'books' ? 'book' : currentPage === 'games' ? 'game' : currentPage]?.loading || false}
+        loading={
+          ['movies', 'tv', 'anime', 'manga', 'books', 'games'].includes(currentPage) 
+            ? (mediaStates[currentPage === 'books' ? 'book' : currentPage === 'games' ? 'game' : currentPage]?.loading || false)
+            : false
+        }
         renderPage={renderPage}
       />
     </ThemeProvider>
