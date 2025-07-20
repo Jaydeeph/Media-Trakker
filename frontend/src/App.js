@@ -978,6 +978,7 @@ function App() {
   const [currentPage, setCurrentPage] = useState('dashboard');
   const [userListItems, setUserListItems] = useState([]);
   const [stats, setStats] = useState({});
+  const [advancedMode, setAdvancedMode] = useState(false); // Simple vs Advanced mode
   
   // Individual state for each media type
   const [mediaStates, setMediaStates] = useState({
