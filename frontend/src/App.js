@@ -1053,7 +1053,7 @@ const MediaPage = ({ mediaType, searchResults = [], searchQuery = '', loading = 
           </h2>
           
           <div className="space-y-4">
-            {userMediaItems.map(item => renderMediaCard(item.media_item, item))}
+            {userMediaItems.map(item => renderMediaCard(item.media_item, item, advancedMode))}
           </div>
         </div>
       )}
