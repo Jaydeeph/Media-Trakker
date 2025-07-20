@@ -438,6 +438,37 @@ def create_media_item_from_anilist(item_data, media_type, db: Session):
         return None
 
 def create_media_item_from_book(book_data, db: Session):
+    if not db or not db_available:
+        # Return a temporary media item without saving to database
+        try:
+            volume_info = book_data.get("volumeInfo", {})
+            image_links = volume_info.get("imageLinks", {})
+            poster_path = image_links.get("thumbnail") or image_links.get("smallThumbnail")
+            
+            published_date = volume_info.get("publishedDate", "")
+            year = None
+            if published_date:
+                try:
+                    year = int(published_date[:4])
+                except (ValueError, IndexError):
+                    pass
+                    
+            return create_temp_media_item({
+                'external_id': book_data["id"],
+                'title': volume_info.get("title", ""),
+                'media_type': "book",
+                'year': year,
+                'genres': volume_info.get("categories", []),
+                'poster_path': poster_path,
+                'overview': volume_info.get("description", ""),
+                'authors': volume_info.get("authors", []),
+                'publisher': volume_info.get("publisher"),
+                'page_count': volume_info.get("pageCount")
+            })
+        except Exception as e:
+            logging.error(f"Error creating temporary book item: {str(e)}")
+            return None
+            
     try:
         volume_info = book_data.get("volumeInfo", {})
         image_links = volume_info.get("imageLinks", {})
