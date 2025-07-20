@@ -1106,7 +1106,7 @@ const MediaPage = ({ mediaType, searchResults = [], searchQuery = '', loading = 
             My {mediaInfo.title} ({userMediaItems.length})
           </h2>
           
-          <div className="space-y-4">
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-6">
             {userMediaItems.map(item => renderMediaCard(item.media_item, item, advancedMode))}
           </div>
         </div>
