@@ -765,119 +765,169 @@ const MediaPage = ({ mediaType, searchResults = [], searchQuery = '', loading = 
     const isInUserList = userMediaItems.some(item => item.media_item.external_id === media.external_id);
     
     return (
-      <div key={media.id} className={`${theme === 'dark' ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'} rounded-2xl border p-6 hover:shadow-lg transition-all duration-200`}>
-        <div className="flex gap-4">
-          {media.poster_path && (
-            <img
-              src={media.poster_path}
-              alt={media.title}
-              className="w-24 h-36 object-cover rounded-xl flex-shrink-0"
-            />
-          )}
-          
-          <div className="flex-1">
-            <h3 className={`text-lg font-semibold mb-2 ${theme === 'dark' ? 'text-white' : 'text-gray-900'}`}>
-              {media.title}
-            </h3>
-            
-            {media.year && (
-              <p className={`text-sm ${theme === 'dark' ? 'text-gray-400' : 'text-gray-600'} mb-2`}>
-                {media.year}
-              </p>
-            )}
-            
-            {media.overview && (
-              <p className={`text-sm ${theme === 'dark' ? 'text-gray-300' : 'text-gray-700'} mb-3 line-clamp-2`}>
-                {media.overview}
-              </p>
-            )}
-            
-            {media.genres && media.genres.length > 0 && (
-              <div className="flex flex-wrap gap-2 mb-3">
-                {media.genres.slice(0, 3).map(genre => (
-                  <span key={genre} className={`px-3 py-1 ${theme === 'dark' ? 'bg-gray-700 text-gray-300' : 'bg-gray-100 text-gray-700'} rounded-full text-sm`}>
-                    {genre}
-                  </span>
-                ))}
+      <div key={media.id} className={`group relative ${theme === 'dark' ? 'bg-gradient-to-br from-gray-800 to-gray-900 border-gray-700/50' : 'bg-gradient-to-br from-white to-gray-50 border-gray-200/50'} rounded-3xl border backdrop-blur-sm shadow-xl hover:shadow-2xl transition-all duration-300 overflow-hidden`}>
+        {/* Animated gradient overlay for premium feel */}
+        <div className="absolute inset-0 bg-gradient-to-r from-red-500/5 via-purple-500/5 to-blue-500/5 opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+        
+        <div className="relative p-6">
+          <div className="flex gap-6">
+            {/* Enhanced Poster with modern styling */}
+            {media.poster_path && (
+              <div className="relative flex-shrink-0">
+                <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent rounded-2xl z-10"></div>
+                <img
+                  src={media.poster_path}
+                  alt={media.title}
+                  className="w-28 h-40 object-cover rounded-2xl shadow-lg group-hover:scale-105 transition-transform duration-300"
+                />
+                {media.vote_average && (
+                  <div className="absolute top-2 right-2 z-20 bg-black/70 backdrop-blur-sm text-white px-2 py-1 rounded-lg text-xs font-bold flex items-center gap-1">
+                    <span className="text-yellow-400">⭐</span>
+                    <span>{media.vote_average.toFixed(1)}</span>
+                  </div>
+                )}
               </div>
             )}
             
-            {/* Game-specific information */}
-            {media.platforms && media.platforms.length > 0 && (
-              <div className="mb-3">
-                <p className={`text-sm font-medium ${theme === 'dark' ? 'text-gray-300' : 'text-gray-700'} mb-1`}>Platforms:</p>
-                <div className="flex flex-wrap gap-2">
-                  {media.platforms.slice(0, 4).map(platform => (
-                    <span key={platform} className={`px-2 py-1 ${theme === 'dark' ? 'bg-blue-900 text-blue-200' : 'bg-blue-100 text-blue-700'} rounded text-xs`}>
-                      {platform}
+            <div className="flex-1 min-w-0">
+              {/* Title and Year */}
+              <div className="mb-4">
+                <h3 className={`text-xl font-bold mb-2 ${theme === 'dark' ? 'text-white' : 'text-gray-900'} line-clamp-2 leading-tight`}>
+                  {media.title}
+                </h3>
+                
+                <div className="flex items-center gap-4 text-sm">
+                  {media.year && (
+                    <span className={`px-3 py-1 ${theme === 'dark' ? 'bg-gray-700/60' : 'bg-gray-100/60'} backdrop-blur-sm rounded-full font-medium ${theme === 'dark' ? 'text-gray-300' : 'text-gray-700'}`}>
+                      {media.year}
                     </span>
-                  ))}
+                  )}
+                  {media.media_type && (
+                    <span className={`px-3 py-1 ${theme === 'dark' ? 'bg-red-900/40 text-red-300' : 'bg-red-100/60 text-red-700'} backdrop-blur-sm rounded-full text-xs uppercase font-bold tracking-wide`}>
+                      {media.media_type}
+                    </span>
+                  )}
                 </div>
               </div>
-            )}
-            
-            {media.developers && media.developers.length > 0 && (
-              <div className="mb-3">
-                <p className={`text-sm ${theme === 'dark' ? 'text-gray-400' : 'text-gray-600'}`}>
-                  <span className="font-medium">Developer:</span> {media.developers.join(', ')}
+              
+              {/* Overview - conditionally shown based on mode */}
+              {(advancedMode || !media.overview || media.overview.length < 100) && media.overview && (
+                <p className={`text-sm ${theme === 'dark' ? 'text-gray-300' : 'text-gray-600'} mb-4 line-clamp-2 leading-relaxed`}>
+                  {media.overview}
                 </p>
-              </div>
-            )}
-            
-            {media.publishers && media.publishers.length > 0 && (
-              <div className="mb-3">
-                <p className={`text-sm ${theme === 'dark' ? 'text-gray-400' : 'text-gray-600'}`}>
-                  <span className="font-medium">Publisher:</span> {media.publishers.join(', ')}
-                </p>
-              </div>
-            )}
-            
-            {media.vote_average && (
-              <p className="text-sm text-yellow-600 mb-4 flex items-center gap-1">
-                <span>⭐</span>
-                <span>{media.vote_average.toFixed(1)}/10</span>
-              </p>
-            )}
-            
-            {/* Action Buttons */}
-            <div className="flex gap-2">
-              {isUserItem ? (
-                // User list item actions
-                <>
-                  <select
-                    value={isUserItem.list_item?.status || 'planning'}
-                    onChange={(e) => handleStatusChange(isUserItem.list_item.id, e.target.value)}
-                    className={`px-3 py-2 ${theme === 'dark' ? 'bg-gray-700 text-white border-gray-600' : 'bg-gray-100 text-gray-900 border-gray-300'} border rounded-lg text-sm`}
-                  >
-                    <option value="planning">Planning</option>
-                    <option value="watching">Watching</option>
-                    <option value="completed">Completed</option>
-                    <option value="paused">Paused</option>
-                    <option value="dropped">Dropped</option>
-                    {mediaType === 'game' && <option value="playing">Playing</option>}
-                    {(mediaType === 'book' || mediaType === 'manga') && <option value="reading">Reading</option>}
-                  </select>
-                  <button
-                    onClick={() => handleRemove(isUserItem.list_item.id)}
-                    className="px-3 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors text-sm"
-                  >
-                    Remove
-                  </button>
-                </>
-              ) : (
-                // Search result actions
-                <button
-                  onClick={() => onAddToList(media)}
-                  disabled={isInUserList}
-                  className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
-                    isInUserList 
-                      ? 'bg-gray-500 text-white cursor-not-allowed' 
-                      : 'bg-green-600 text-white hover:bg-green-700'
-                  }`}
-                >
-                  {isInUserList ? 'In List' : 'Add to List'}
-                </button>
               )}
+              
+              {/* Genres */}
+              {media.genres && media.genres.length > 0 && (
+                <div className="mb-4">
+                  <div className="flex flex-wrap gap-2">
+                    {media.genres.slice(0, advancedMode ? 5 : 3).map(genre => (
+                      <span key={genre} className={`px-3 py-1 ${theme === 'dark' ? 'bg-purple-900/40 text-purple-200 border border-purple-800/40' : 'bg-purple-50 text-purple-700 border border-purple-200/50'} rounded-xl text-xs font-medium backdrop-blur-sm`}>
+                        {genre}
+                      </span>
+                    ))}
+                    {media.genres.length > (advancedMode ? 5 : 3) && (
+                      <span className={`px-3 py-1 ${theme === 'dark' ? 'bg-gray-700/40 text-gray-400' : 'bg-gray-100/40 text-gray-500'} rounded-xl text-xs`}>
+                        +{media.genres.length - (advancedMode ? 5 : 3)} more
+                      </span>
+                    )}
+                  </div>
+                </div>
+              )}
+              
+              {/* Advanced Mode: Additional Information */}
+              {advancedMode && (
+                <>
+                  {/* Platforms for games */}
+                  {media.platforms && media.platforms.length > 0 && (
+                    <div className="mb-3">
+                      <p className={`text-xs font-bold ${theme === 'dark' ? 'text-blue-300' : 'text-blue-700'} mb-2 uppercase tracking-wide`}>Platforms</p>
+                      <div className="flex flex-wrap gap-2">
+                        {media.platforms.slice(0, 4).map(platform => (
+                          <span key={platform} className={`px-2 py-1 ${theme === 'dark' ? 'bg-blue-900/40 text-blue-200 border border-blue-800/40' : 'bg-blue-50 text-blue-700 border border-blue-200/50'} rounded-lg text-xs font-medium`}>
+                            {platform}
+                          </span>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                  
+                  {/* Developer/Publisher for games */}
+                  {media.developers && media.developers.length > 0 && (
+                    <div className="mb-2">
+                      <p className={`text-xs ${theme === 'dark' ? 'text-gray-400' : 'text-gray-600'}`}>
+                        <span className="font-semibold">Developer:</span> {media.developers.slice(0, 2).join(', ')}
+                        {media.developers.length > 2 && ` +${media.developers.length - 2} more`}
+                      </p>
+                    </div>
+                  )}
+                  
+                  {media.publishers && media.publishers.length > 0 && (
+                    <div className="mb-3">
+                      <p className={`text-xs ${theme === 'dark' ? 'text-gray-400' : 'text-gray-600'}`}>
+                        <span className="font-semibold">Publisher:</span> {media.publishers.slice(0, 2).join(', ')}
+                        {media.publishers.length > 2 && ` +${media.publishers.length - 2} more`}
+                      </p>
+                    </div>
+                  )}
+                  
+                  {/* TV/Anime specific info */}
+                  {media.seasons && (
+                    <div className="mb-2">
+                      <p className={`text-xs ${theme === 'dark' ? 'text-gray-400' : 'text-gray-600'}`}>
+                        <span className="font-semibold">Seasons:</span> {media.seasons}
+                        {media.episodes && ` (${media.episodes} episodes)`}
+                      </p>
+                    </div>
+                  )}
+                  
+                  {/* Book/Manga specific info */}
+                  {media.authors && media.authors.length > 0 && (
+                    <div className="mb-2">
+                      <p className={`text-xs ${theme === 'dark' ? 'text-gray-400' : 'text-gray-600'}`}>
+                        <span className="font-semibold">Author:</span> {media.authors.join(', ')}
+                      </p>
+                    </div>
+                  )}
+                </>
+              )}
+              
+              {/* Action Buttons */}
+              <div className="flex gap-3 mt-6">
+                {isUserItem ? (
+                  // User list item actions
+                  <>
+                    <select
+                      value={isUserItem.list_item?.status || 'planning'}
+                      onChange={(e) => handleStatusChange(isUserItem.list_item.id, e.target.value)}
+                      className={`px-4 py-2 ${theme === 'dark' ? 'bg-gray-700/60 text-white border-gray-600/40' : 'bg-gray-100/60 text-gray-900 border-gray-300/40'} border rounded-xl text-sm font-medium backdrop-blur-sm transition-all hover:scale-105`}
+                    >
+                      <option value="planning">📝 Planning</option>
+                      <option value="watching">👀 Watching</option>
+                      <option value="completed">✅ Completed</option>
+                      <option value="paused">⏸️ Paused</option>
+                      <option value="dropped">❌ Dropped</option>
+                      {mediaType === 'game' && <option value="playing">🎮 Playing</option>}
+                      {(mediaType === 'book' || mediaType === 'manga') && <option value="reading">📖 Reading</option>}
+                    </select>
+                    <button
+                      onClick={() => handleRemove(isUserItem.list_item.id)}
+                      className="px-4 py-2 bg-gradient-to-r from-red-500 to-red-600 text-white rounded-xl hover:from-red-600 hover:to-red-700 transition-all duration-200 text-sm font-medium shadow-lg hover:shadow-xl transform hover:scale-105"
+                    >
+                      🗑️ Remove
+                    </button>
+                  </>
+                ) : (
+                  // Enhanced Add to List with Status Selection
+                  <AddToListButton 
+                    media={media}
+                    isInUserList={isInUserList}
+                    onAddToList={onAddToList}
+                    theme={theme}
+                    mediaType={mediaType}
+                  />
+                )}
+              </div>
             </div>
           </div>
         </div>
