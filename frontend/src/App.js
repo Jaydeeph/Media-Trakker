@@ -1043,15 +1043,12 @@ function App() {
   };
 
   const handleAddToList = async (mediaItem, status = 'planning') => {
-    console.log('handleAddToList called with:', { mediaItem: mediaItem.id, mediaType: mediaItem.media_type, status });
     try {
       const response = await axios.post(`${API}/user-list`, {
         media_id: mediaItem.id,
         media_type: mediaItem.media_type,
         status: status
       });
-      
-      console.log('Add to list response:', response.data);
       
       // Reload user list and stats
       await loadUserList();
