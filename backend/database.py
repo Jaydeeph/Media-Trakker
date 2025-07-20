@@ -4,11 +4,29 @@ from sqlalchemy.orm import sessionmaker
 import uuid
 from datetime import datetime
 import os
+import logging
 
-# PostgreSQL Database Setup
+# PostgreSQL Database Setup with fallback handling
 POSTGRES_URL = os.environ.get('POSTGRES_URL', 'postgresql://postgres:password@localhost:5432/media_trakker')
-engine = create_engine(POSTGRES_URL)
-SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
+
+# Database connection with error handling
+engine = None
+SessionLocal = None
+db_available = False
+
+try:
+    engine = create_engine(POSTGRES_URL)
+    SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
+    # Test the connection
+    with engine.connect() as conn:
+        conn.execute("SELECT 1")
+    db_available = True
+    logging.info("PostgreSQL connection successful")
+except Exception as e:
+    logging.error(f"PostgreSQL connection failed: {str(e)}")
+    logging.info("Running without database - search will work but data won't be cached")
+    db_available = False
+
 Base = declarative_base()
 
 # Media Items Cache Table
