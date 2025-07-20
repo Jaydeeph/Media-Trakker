@@ -1232,6 +1232,10 @@ function App() {
     }
   };
 
+  const handleToggleAdvancedMode = () => {
+    setAdvancedMode(prev => !prev);
+  };
+
   const renderPage = () => {
     switch (currentPage) {
       case 'dashboard':
