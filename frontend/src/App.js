@@ -1072,7 +1072,7 @@ const MediaPage = ({ mediaType, searchResults = [], searchQuery = '', loading = 
             </div>
           ) : safeSearchResults.length > 0 ? (
             <div className="space-y-4">
-              {safeSearchResults.map(media => renderMediaCard(media))}
+              {safeSearchResults.map(media => renderMediaCard(media, false, advancedMode))}
             </div>
           ) : (
             <div className={`text-center py-12 ${theme === 'dark' ? 'text-gray-400' : 'text-gray-600'}`}>
