@@ -1262,6 +1262,7 @@ function App() {
             onRemoveItem={handleRemoveItem}
             onSearch={handleSearch}
             advancedMode={advancedMode}
+            onToggleAdvancedMode={handleToggleAdvancedMode}
           />
         );
       case 'profile':
