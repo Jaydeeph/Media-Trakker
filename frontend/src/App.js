@@ -1099,7 +1099,7 @@ function App() {
       case 'manga':
       case 'books':
       case 'games':
-        const mediaType = currentPage === 'books' ? 'book' : currentPage === 'games' ? 'game' : currentPage;
+        const mediaType = currentPage === 'movies' ? 'movie' : currentPage === 'books' ? 'book' : currentPage === 'games' ? 'game' : currentPage;
         const mediaState = mediaStates[mediaType] || { searchResults: [], searchQuery: '', loading: false };
         const userMediaItems = userListItems.filter(item => item.media_item.media_type === mediaType);
         
