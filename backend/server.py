@@ -514,6 +514,73 @@ def create_media_item_from_book(book_data, db: Session):
         return None
 
 def create_media_item_from_igdb_game(game_data, db: Session):
+    if not db or not db_available:
+        # Return a temporary media item without saving to database
+        try:
+            # Extract basic info
+            external_id = str(game_data["id"])
+            title = game_data.get("name", "")
+            overview = game_data.get("summary", "")
+            rating = game_data.get("rating", 0) / 10 if game_data.get("rating") else None
+            
+            # Extract release year
+            release_year = None
+            release_dates = game_data.get("release_dates")
+            if release_dates and len(release_dates) > 0:
+                release_year = release_dates[0].get("y")
+                
+            # Extract platforms
+            platforms = []
+            if game_data.get("platforms"):
+                platforms = [platform.get("name", "") for platform in game_data["platforms"]]
+                
+            # Extract developers and publishers  
+            developers = []
+            if game_data.get("involved_companies"):
+                developers = [company.get("company", {}).get("name", "") 
+                            for company in game_data["involved_companies"] 
+                            if company.get("developer")]
+                            
+            publishers = []
+            if game_data.get("involved_companies"):
+                publishers = [company.get("company", {}).get("name", "") 
+                            for company in game_data["involved_companies"] 
+                            if company.get("publisher")]
+                            
+            # Extract game modes
+            game_modes = []
+            if game_data.get("game_modes"):
+                game_modes = [mode.get("name", "") for mode in game_data["game_modes"]]
+                
+            # Extract genres
+            genres = []
+            if game_data.get("genres"):
+                genres = [genre.get("name", "") for genre in game_data["genres"]]
+                
+            # Extract poster/cover
+            poster_path = None
+            if game_data.get("cover"):
+                poster_path = f"https://images.igdb.com/igdb/image/upload/t_cover_big/{game_data['cover']['image_id']}.jpg"
+                
+            return create_temp_media_item({
+                'external_id': external_id,
+                'title': title,
+                'media_type': "game",
+                'year': release_year,
+                'genres': genres,
+                'poster_path': poster_path,
+                'overview': overview,
+                'rating': rating,
+                'platforms': platforms,
+                'developers': developers,
+                'publishers': publishers,
+                'game_modes': game_modes,
+                'release_year': release_year
+            })
+        except Exception as e:
+            logging.error(f"Error creating temporary game item: {str(e)}")
+            return None
+            
     try:
         # Extract basic info
         external_id = str(game_data["id"])
