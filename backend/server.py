@@ -984,20 +984,36 @@ async def get_user_stats(db: Session = Depends(get_db)):
 
 @api_router.get("/user-preferences")
 async def get_user_preferences(db: Session = Depends(get_db)):
-    preferences = db.query(UserPreferences).filter(UserPreferences.user_id == "demo_user").first()
-    
-    if not preferences:
-        # Create default preferences
-        preferences = UserPreferences(user_id="demo_user", theme="dark")
-        db.add(preferences)
-        db.commit()
-        db.refresh(preferences)
-    
-    return {
-        "theme": preferences.theme,
-        "language": preferences.language,
-        "notifications_enabled": preferences.notifications_enabled
-    }
+    if not db or not db_available:
+        # Return default preferences when database is not available
+        return {
+            "theme": "dark",
+            "language": "en", 
+            "notifications_enabled": True
+        }
+        
+    try:
+        preferences = db.query(UserPreferences).filter(UserPreferences.user_id == "demo_user").first()
+        
+        if not preferences:
+            # Create default preferences
+            preferences = UserPreferences(user_id="demo_user", theme="dark")
+            db.add(preferences)
+            db.commit()
+            db.refresh(preferences)
+        
+        return {
+            "theme": preferences.theme,
+            "language": preferences.language,
+            "notifications_enabled": preferences.notifications_enabled
+        }
+    except Exception as e:
+        logging.error(f"Database error in get_user_preferences: {str(e)}")
+        return {
+            "theme": "dark",
+            "language": "en", 
+            "notifications_enabled": True
+        }
 
 @api_router.put("/user-preferences")
 async def update_user_preferences(update_data: UserPreferencesUpdate, db: Session = Depends(get_db)):
