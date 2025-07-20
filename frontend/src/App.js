@@ -789,7 +789,7 @@ const AddToListButton = ({ media, isInUserList, onAddToList, theme, mediaType })
 };
 
 // Enhanced Media Page Component with Its Own Search Bar and State
-const MediaPage = ({ mediaType, searchResults = [], searchQuery = '', loading = false, userMediaItems = [], onAddToList, onUpdateItem, onRemoveItem, onSearch }) => {
+const MediaPage = ({ mediaType, searchResults = [], searchQuery = '', loading = false, userMediaItems = [], onAddToList, onUpdateItem, onRemoveItem, onSearch, advancedMode = false }) => {
   const { theme } = useTheme();
   const [localSearchQuery, setLocalSearchQuery] = useState(searchQuery || '');
   
