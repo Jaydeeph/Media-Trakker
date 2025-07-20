@@ -966,21 +966,29 @@ async def remove_from_user_list(list_item_id: str, db: Session = Depends(get_db)
 
 @api_router.get("/stats")
 async def get_user_stats(db: Session = Depends(get_db)):
-    list_items = db.query(UserList).filter(UserList.user_id == "demo_user").all()
-    
-    stats = {}
-    for item in list_items:
-        media_type = item.media_type
-        status = item.status
+    if not db or not db_available:
+        # Return empty stats when database is not available
+        return {}
         
-        if media_type not in stats:
-            stats[media_type] = {}
-        if status not in stats[media_type]:
-            stats[media_type][status] = 0
+    try:
+        list_items = db.query(UserList).filter(UserList.user_id == "demo_user").all()
         
-        stats[media_type][status] += 1
-    
-    return stats
+        stats = {}
+        for item in list_items:
+            media_type = item.media_type
+            status = item.status
+            
+            if media_type not in stats:
+                stats[media_type] = {}
+            if status not in stats[media_type]:
+                stats[media_type][status] = 0
+            
+            stats[media_type][status] += 1
+        
+        return stats
+    except Exception as e:
+        logging.error(f"Database error in get_user_stats: {str(e)}")
+        return {}
 
 @api_router.get("/user-preferences")
 async def get_user_preferences(db: Session = Depends(get_db)):
