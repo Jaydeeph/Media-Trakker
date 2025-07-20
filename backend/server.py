@@ -861,62 +861,70 @@ async def add_to_user_list(item: UserListItemCreate, db: Session = Depends(get_d
 
 @api_router.get("/user-list")
 async def get_user_list(status: Optional[str] = None, media_type: Optional[str] = None, db: Session = Depends(get_db)):
-    query = db.query(UserList).filter(UserList.user_id == "demo_user")
-    
-    if status:
-        query = query.filter(UserList.status == status)
-    if media_type:
-        query = query.filter(UserList.media_type == media_type)
-    
-    list_items = query.all()
-    
-    # Enrich with media details from PostgreSQL
-    enriched_items = []
-    for item in list_items:
-        media_item = db.query(MediaItem).filter(MediaItem.id == item.media_id).first()
-        if media_item:
-            enriched_items.append({
-                "list_item": {
-                    "id": item.id,
-                    "user_id": item.user_id,
-                    "media_id": item.media_id,
-                    "media_type": item.media_type,
-                    "status": item.status,
-                    "rating": item.rating,
-                    "notes": item.notes,
-                    "progress": item.progress,
-                    "created_at": item.created_at.isoformat(),
-                    "updated_at": item.updated_at.isoformat()
-                },
-                "media_item": MediaItemResponse(
-                    id=media_item.id,
-                    external_id=media_item.external_id,
-                    title=media_item.title,
-                    media_type=media_item.media_type,
-                    year=media_item.year,
-                    genres=media_item.genres or [],
-                    poster_path=media_item.poster_path,
-                    overview=media_item.overview,
-                    backdrop_path=media_item.backdrop_path,
-                    vote_average=media_item.vote_average,
-                    release_date=media_item.release_date,
-                    seasons=media_item.seasons,
-                    episodes=media_item.episodes,
-                    chapters=media_item.chapters,
-                    volumes=media_item.volumes,
-                    authors=media_item.authors or [],
-                    publisher=media_item.publisher,
-                    page_count=media_item.page_count,
-                    platforms=media_item.platforms or [],
-                    developers=media_item.developers or [],
-                    publishers=media_item.publishers or [],
-                    release_year=media_item.release_year,
-                    rating=media_item.rating,
-                    game_modes=media_item.game_modes or []
-                )
-            })
-    
-    return enriched_items
+    if not db or not db_available:
+        # Return empty list when database is not available
+        return []
+        
+    try:
+        query = db.query(UserList).filter(UserList.user_id == "demo_user")
+        
+        if status:
+            query = query.filter(UserList.status == status)
+        if media_type:
+            query = query.filter(UserList.media_type == media_type)
+        
+        list_items = query.all()
+        
+        # Enrich with media details from PostgreSQL
+        enriched_items = []
+        for item in list_items:
+            media_item = db.query(MediaItem).filter(MediaItem.id == item.media_id).first()
+            if media_item:
+                enriched_items.append({
+                    "list_item": {
+                        "id": item.id,
+                        "user_id": item.user_id,
+                        "media_id": item.media_id,
+                        "media_type": item.media_type,
+                        "status": item.status,
+                        "rating": item.rating,
+                        "notes": item.notes,
+                        "progress": item.progress,
+                        "created_at": item.created_at.isoformat(),
+                        "updated_at": item.updated_at.isoformat()
+                    },
+                    "media_item": MediaItemResponse(
+                        id=media_item.id,
+                        external_id=media_item.external_id,
+                        title=media_item.title,
+                        media_type=media_item.media_type,
+                        year=media_item.year,
+                        genres=media_item.genres or [],
+                        poster_path=media_item.poster_path,
+                        overview=media_item.overview,
+                        backdrop_path=media_item.backdrop_path,
+                        vote_average=media_item.vote_average,
+                        release_date=media_item.release_date,
+                        seasons=media_item.seasons,
+                        episodes=media_item.episodes,
+                        chapters=media_item.chapters,
+                        volumes=media_item.volumes,
+                        authors=media_item.authors or [],
+                        publisher=media_item.publisher,
+                        page_count=media_item.page_count,
+                        platforms=media_item.platforms or [],
+                        developers=media_item.developers or [],
+                        publishers=media_item.publishers or [],
+                        release_year=media_item.release_year,
+                        rating=media_item.rating,
+                        game_modes=media_item.game_modes or []
+                    )
+                })
+        
+        return enriched_items
+    except Exception as e:
+        logging.error(f"Database error in get_user_list: {str(e)}")
+        return []
 
 @api_router.put("/user-list/{list_item_id}")
 async def update_user_list_item(list_item_id: str, update_data: UserListItemUpdate, db: Session = Depends(get_db)):
