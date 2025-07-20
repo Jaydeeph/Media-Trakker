@@ -727,9 +727,25 @@ const AddToListButton = ({ media, isInUserList, onAddToList, theme, mediaType })
     { value: 'completed', label: '✅ Completed', color: 'from-purple-500 to-purple-600' },
     { value: 'paused', label: '⏸️ Paused', color: 'from-yellow-500 to-yellow-600' },
     { value: 'dropped', label: '❌ Dropped', color: 'from-red-500 to-red-600' },
-    ...(mediaType === 'game' ? [{ value: 'playing', label: '🎮 Playing', color: 'from-indigo-500 to-indigo-600' }] : []),
-    ...((mediaType === 'book' || mediaType === 'manga') ? [{ value: 'reading', label: '📖 Reading', color: 'from-teal-500 to-teal-600' }] : [])
+    // Add media-specific statuses
+    ...(mediaType === 'game' ? [
+      { value: 'playing', label: '🎮 Playing', color: 'from-indigo-500 to-indigo-600' },
+      { value: 'completed', label: '🏆 Completed', color: 'from-purple-500 to-purple-600' }
+    ] : []),
+    ...((mediaType === 'book' || mediaType === 'manga') ? [
+      { value: 'reading', label: '📖 Reading', color: 'from-teal-500 to-teal-600' },
+      { value: 'completed', label: '📚 Read', color: 'from-purple-500 to-purple-600' }
+    ] : []),
+    ...((mediaType === 'movie' || mediaType === 'tv' || mediaType === 'anime') ? [
+      { value: 'watching', label: '👀 Watching', color: 'from-green-500 to-green-600' },
+      { value: 'completed', label: '✅ Watched', color: 'from-purple-500 to-purple-600' }
+    ] : [])
   ];
+  
+  // Remove duplicates by value
+  const uniqueStatusOptions = statusOptions.filter((option, index, self) => 
+    index === self.findIndex(o => o.value === option.value)
+  );
   
   const handleStatusSelect = (status) => {
     onAddToList(media, status);
@@ -738,37 +754,39 @@ const AddToListButton = ({ media, isInUserList, onAddToList, theme, mediaType })
   
   if (isInUserList) {
     return (
-      <button
-        disabled
-        className={`px-6 py-2 ${theme === 'dark' ? 'bg-gray-600' : 'bg-gray-400'} text-white rounded-xl cursor-not-allowed text-sm font-medium opacity-60`}
-      >
-        ✓ In List
-      </button>
+      <div className="absolute bottom-3 left-3 right-3">
+        <button
+          disabled
+          className={`w-full px-3 py-2 ${theme === 'dark' ? 'bg-gray-600' : 'bg-gray-400'} text-white rounded-lg cursor-not-allowed text-sm font-medium opacity-80`}
+        >
+          ✓ In List
+        </button>
+      </div>
     );
   }
   
   return (
-    <div className="relative">
+    <div className="absolute bottom-3 left-3 right-3">
       {!showStatusDropdown ? (
         <button
           onClick={() => setShowStatusDropdown(true)}
-          className="px-6 py-2 bg-gradient-to-r from-emerald-500 to-emerald-600 text-white rounded-xl hover:from-emerald-600 hover:to-emerald-700 transition-all duration-200 text-sm font-medium shadow-lg hover:shadow-xl transform hover:scale-105 flex items-center gap-2"
+          className="w-full px-3 py-2 bg-gradient-to-r from-emerald-500 to-emerald-600 text-white rounded-lg hover:from-emerald-600 hover:to-emerald-700 transition-all duration-200 text-sm font-medium shadow-lg hover:shadow-xl transform hover:scale-105 flex items-center justify-center gap-2"
         >
           <span>➕</span>
           Add to List
           <span className="text-xs">▼</span>
         </button>
       ) : (
-        <div className={`absolute bottom-full mb-2 left-0 ${theme === 'dark' ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'} border rounded-2xl shadow-2xl backdrop-blur-sm z-50 min-w-48 overflow-hidden animate-in slide-in-from-bottom-4 duration-200`}>
+        <div className={`absolute bottom-full mb-2 left-0 right-0 ${theme === 'dark' ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'} border rounded-2xl shadow-2xl backdrop-blur-sm z-50 overflow-hidden animate-in slide-in-from-bottom-4 duration-200`}>
           <div className="p-2">
             <div className={`text-xs font-bold ${theme === 'dark' ? 'text-gray-400' : 'text-gray-600'} px-3 py-2 uppercase tracking-wider`}>
               Select Status
             </div>
-            {statusOptions.map((option) => (
+            {uniqueStatusOptions.map((option) => (
               <button
                 key={option.value}
                 onClick={() => handleStatusSelect(option.value)}
-                className={`w-full text-left px-4 py-3 text-sm font-medium rounded-xl mb-1 transition-all duration-150 hover:scale-105 bg-gradient-to-r ${option.color} text-white hover:shadow-lg`}
+                className={`w-full text-left px-3 py-2 text-sm font-medium rounded-lg mb-1 transition-all duration-150 hover:scale-105 bg-gradient-to-r ${option.color} text-white hover:shadow-lg`}
               >
                 {option.label}
               </button>
@@ -777,7 +795,7 @@ const AddToListButton = ({ media, isInUserList, onAddToList, theme, mediaType })
           <div className="px-2 pb-2">
             <button
               onClick={() => setShowStatusDropdown(false)}
-              className={`w-full px-3 py-2 text-xs ${theme === 'dark' ? 'text-gray-400 hover:text-gray-300' : 'text-gray-500 hover:text-gray-700'} rounded-xl hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors`}
+              className={`w-full px-3 py-2 text-xs ${theme === 'dark' ? 'text-gray-400 hover:text-gray-300' : 'text-gray-500 hover:text-gray-700'} rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors`}
             >
               Cancel
             </button>
