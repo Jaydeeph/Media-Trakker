@@ -854,170 +854,181 @@ const MediaPage = ({ mediaType, searchResults = [], searchQuery = '', loading = 
     const isInUserList = userMediaItems.some(item => item.media_item.external_id === media.external_id);
     
     return (
-      <div key={media.id} className={`group relative ${theme === 'dark' ? 'bg-gradient-to-br from-gray-800 to-gray-900 border-gray-700/50' : 'bg-gradient-to-br from-white to-gray-50 border-gray-200/50'} rounded-3xl border backdrop-blur-sm shadow-xl hover:shadow-2xl transition-all duration-300 overflow-hidden`}>
-        {/* Animated gradient overlay for premium feel */}
-        <div className="absolute inset-0 bg-gradient-to-r from-red-500/5 via-purple-500/5 to-blue-500/5 opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
-        
-        <div className="relative p-6">
-          <div className="flex gap-6">
-            {/* Enhanced Poster with modern styling */}
-            {media.poster_path && (
-              <div className="relative flex-shrink-0">
-                <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent rounded-2xl z-10"></div>
-                <img
-                  src={media.poster_path}
-                  alt={media.title}
-                  className="w-28 h-40 object-cover rounded-2xl shadow-lg group-hover:scale-105 transition-transform duration-300"
-                />
-                {media.vote_average && (
-                  <div className="absolute top-2 right-2 z-20 bg-black/70 backdrop-blur-sm text-white px-2 py-1 rounded-lg text-xs font-bold flex items-center gap-1">
-                    <span className="text-yellow-400">⭐</span>
-                    <span>{media.vote_average.toFixed(1)}</span>
-                  </div>
-                )}
+      <div key={media.id} className={`group relative ${theme === 'dark' ? 'bg-gradient-to-b from-gray-800 to-gray-900' : 'bg-gradient-to-b from-white to-gray-50'} rounded-2xl overflow-hidden shadow-xl hover:shadow-2xl transition-all duration-300 transform hover:scale-105`}>
+        {/* Poster Image */}
+        <div className="relative aspect-[2/3] overflow-hidden bg-gray-200 dark:bg-gray-700">
+          {media.poster_path ? (
+            <img
+              src={media.poster_path}
+              alt={media.title}
+              className="w-full h-full object-cover"
+            />
+          ) : (
+            <div className="w-full h-full flex items-center justify-center">
+              <span className="text-6xl opacity-30">{
+                mediaType === 'movie' ? '🎬' : 
+                mediaType === 'tv' ? '📺' : 
+                mediaType === 'game' ? '🎮' : 
+                mediaType === 'book' ? '📖' : 
+                mediaType === 'manga' ? '📚' : 
+                mediaType === 'anime' ? '🎌' : '📄'
+              }</span>
+            </div>
+          )}
+          
+          {/* Rating Badge - Top Right */}
+          {media.vote_average && (
+            <div className="absolute top-3 right-3 bg-orange-500 text-white px-2 py-1 rounded-lg text-sm font-bold flex items-center gap-1">
+              <span>{media.vote_average.toFixed(1)}</span>
+            </div>
+          )}
+          
+          {/* Media Type Badge - Top Left */}
+          <div className={`absolute top-3 left-3 px-2 py-1 rounded-lg text-xs font-bold uppercase ${
+            mediaType === 'movie' ? 'bg-red-600' :
+            mediaType === 'tv' ? 'bg-purple-600' :
+            mediaType === 'game' ? 'bg-indigo-600' :
+            mediaType === 'book' ? 'bg-green-600' :
+            mediaType === 'manga' ? 'bg-pink-600' :
+            mediaType === 'anime' ? 'bg-yellow-600' : 'bg-gray-600'
+          } text-white`}>
+            {mediaType}
+          </div>
+          
+          {/* User Status Badge - For user items */}
+          {isUserItem && isUserItem.list_item?.status && (
+            <div className="absolute top-12 left-3 px-2 py-1 bg-black/70 text-white rounded-lg text-xs font-medium capitalize">
+              {isUserItem.list_item.status === 'watching' ? '👀 Watching' :
+               isUserItem.list_item.status === 'completed' ? '✅ Completed' :
+               isUserItem.list_item.status === 'planning' ? '📝 Planning' :
+               isUserItem.list_item.status === 'paused' ? '⏸️ Paused' :
+               isUserItem.list_item.status === 'dropped' ? '❌ Dropped' :
+               isUserItem.list_item.status === 'playing' ? '🎮 Playing' :
+               isUserItem.list_item.status === 'reading' ? '📖 Reading' :
+               isUserItem.list_item.status}
+            </div>
+          )}
+          
+          {/* Hover Overlay with Details */}
+          <div className="absolute inset-0 bg-black/80 opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex flex-col justify-end p-4">
+            {/* Title and Year */}
+            <div className="text-white mb-2">
+              <h3 className="font-bold text-lg mb-1 line-clamp-2">{media.title}</h3>
+              {media.year && (
+                <p className="text-sm opacity-80">{media.year}</p>
+              )}
+            </div>
+            
+            {/* Genres */}
+            {media.genres && media.genres.length > 0 && (
+              <div className="flex flex-wrap gap-1 mb-3">
+                {media.genres.slice(0, 3).map(genre => (
+                  <span key={genre} className="px-2 py-1 bg-white/20 text-white text-xs rounded-full">
+                    {genre}
+                  </span>
+                ))}
               </div>
             )}
             
-            <div className="flex-1 min-w-0">
-              {/* Title and Year */}
-              <div className="mb-4">
-                <h3 className={`text-xl font-bold mb-2 ${theme === 'dark' ? 'text-white' : 'text-gray-900'} line-clamp-2 leading-tight`}>
-                  {media.title}
-                </h3>
+            {/* Advanced Mode: Additional Details */}
+            {advancedMode && (
+              <div className="mb-3 space-y-1">
+                {/* Overview */}
+                {media.overview && (
+                  <p className="text-white text-xs opacity-90 line-clamp-3">{media.overview}</p>
+                )}
                 
-                <div className="flex items-center gap-4 text-sm">
-                  {media.year && (
-                    <span className={`px-3 py-1 ${theme === 'dark' ? 'bg-gray-700/60' : 'bg-gray-100/60'} backdrop-blur-sm rounded-full font-medium ${theme === 'dark' ? 'text-gray-300' : 'text-gray-700'}`}>
-                      {media.year}
-                    </span>
-                  )}
-                  {media.media_type && (
-                    <span className={`px-3 py-1 ${theme === 'dark' ? 'bg-red-900/40 text-red-300' : 'bg-red-100/60 text-red-700'} backdrop-blur-sm rounded-full text-xs uppercase font-bold tracking-wide`}>
-                      {media.media_type}
-                    </span>
-                  )}
-                </div>
-              </div>
-              
-              {/* Overview - conditionally shown based on mode */}
-              {(advancedMode || !media.overview || media.overview.length < 100) && media.overview && (
-                <p className={`text-sm ${theme === 'dark' ? 'text-gray-300' : 'text-gray-600'} mb-4 line-clamp-2 leading-relaxed`}>
-                  {media.overview}
-                </p>
-              )}
-              
-              {/* Genres */}
-              {media.genres && media.genres.length > 0 && (
-                <div className="mb-4">
-                  <div className="flex flex-wrap gap-2">
-                    {media.genres.slice(0, advancedMode ? 5 : 3).map(genre => (
-                      <span key={genre} className={`px-3 py-1 ${theme === 'dark' ? 'bg-purple-900/40 text-purple-200 border border-purple-800/40' : 'bg-purple-50 text-purple-700 border border-purple-200/50'} rounded-xl text-xs font-medium backdrop-blur-sm`}>
-                        {genre}
-                      </span>
-                    ))}
-                    {media.genres.length > (advancedMode ? 5 : 3) && (
-                      <span className={`px-3 py-1 ${theme === 'dark' ? 'bg-gray-700/40 text-gray-400' : 'bg-gray-100/40 text-gray-500'} rounded-xl text-xs`}>
-                        +{media.genres.length - (advancedMode ? 5 : 3)} more
-                      </span>
-                    )}
-                  </div>
-                </div>
-              )}
-              
-              {/* Advanced Mode: Additional Information */}
-              {advancedMode && (
-                <>
-                  {/* Platforms for games */}
-                  {media.platforms && media.platforms.length > 0 && (
-                    <div className="mb-3">
-                      <p className={`text-xs font-bold ${theme === 'dark' ? 'text-blue-300' : 'text-blue-700'} mb-2 uppercase tracking-wide`}>Platforms</p>
-                      <div className="flex flex-wrap gap-2">
-                        {media.platforms.slice(0, 4).map(platform => (
-                          <span key={platform} className={`px-2 py-1 ${theme === 'dark' ? 'bg-blue-900/40 text-blue-200 border border-blue-800/40' : 'bg-blue-50 text-blue-700 border border-blue-200/50'} rounded-lg text-xs font-medium`}>
-                            {platform}
-                          </span>
-                        ))}
-                      </div>
-                    </div>
-                  )}
-                  
-                  {/* Developer/Publisher for games */}
-                  {media.developers && media.developers.length > 0 && (
-                    <div className="mb-2">
-                      <p className={`text-xs ${theme === 'dark' ? 'text-gray-400' : 'text-gray-600'}`}>
-                        <span className="font-semibold">Developer:</span> {media.developers.slice(0, 2).join(', ')}
-                        {media.developers.length > 2 && ` +${media.developers.length - 2} more`}
-                      </p>
-                    </div>
-                  )}
-                  
-                  {media.publishers && media.publishers.length > 0 && (
-                    <div className="mb-3">
-                      <p className={`text-xs ${theme === 'dark' ? 'text-gray-400' : 'text-gray-600'}`}>
-                        <span className="font-semibold">Publisher:</span> {media.publishers.slice(0, 2).join(', ')}
-                        {media.publishers.length > 2 && ` +${media.publishers.length - 2} more`}
-                      </p>
-                    </div>
-                  )}
-                  
-                  {/* TV/Anime specific info */}
-                  {media.seasons && (
-                    <div className="mb-2">
-                      <p className={`text-xs ${theme === 'dark' ? 'text-gray-400' : 'text-gray-600'}`}>
-                        <span className="font-semibold">Seasons:</span> {media.seasons}
-                        {media.episodes && ` (${media.episodes} episodes)`}
-                      </p>
-                    </div>
-                  )}
-                  
-                  {/* Book/Manga specific info */}
-                  {media.authors && media.authors.length > 0 && (
-                    <div className="mb-2">
-                      <p className={`text-xs ${theme === 'dark' ? 'text-gray-400' : 'text-gray-600'}`}>
-                        <span className="font-semibold">Author:</span> {media.authors.join(', ')}
-                      </p>
-                    </div>
-                  )}
-                </>
-              )}
-              
-              {/* Action Buttons */}
-              <div className="flex gap-3 mt-6">
-                {isUserItem ? (
-                  // User list item actions
-                  <>
-                    <select
-                      value={isUserItem.list_item?.status || 'planning'}
-                      onChange={(e) => handleStatusChange(isUserItem.list_item.id, e.target.value)}
-                      className={`px-4 py-2 ${theme === 'dark' ? 'bg-gray-700/60 text-white border-gray-600/40' : 'bg-gray-100/60 text-gray-900 border-gray-300/40'} border rounded-xl text-sm font-medium backdrop-blur-sm transition-all hover:scale-105`}
-                    >
-                      <option value="planning">📝 Planning</option>
-                      <option value="watching">👀 Watching</option>
-                      <option value="completed">✅ Completed</option>
-                      <option value="paused">⏸️ Paused</option>
-                      <option value="dropped">❌ Dropped</option>
-                      {mediaType === 'game' && <option value="playing">🎮 Playing</option>}
-                      {(mediaType === 'book' || mediaType === 'manga') && <option value="reading">📖 Reading</option>}
-                    </select>
-                    <button
-                      onClick={() => handleRemove(isUserItem.list_item.id)}
-                      className="px-4 py-2 bg-gradient-to-r from-red-500 to-red-600 text-white rounded-xl hover:from-red-600 hover:to-red-700 transition-all duration-200 text-sm font-medium shadow-lg hover:shadow-xl transform hover:scale-105"
-                    >
-                      🗑️ Remove
-                    </button>
-                  </>
-                ) : (
-                  // Enhanced Add to List with Status Selection
-                  <AddToListButton 
-                    media={media}
-                    isInUserList={isInUserList}
-                    onAddToList={onAddToList}
-                    theme={theme}
-                    mediaType={mediaType}
-                  />
+                {/* Game-specific info */}
+                {media.platforms && media.platforms.length > 0 && (
+                  <p className="text-white text-xs opacity-80">
+                    <span className="font-semibold">Platforms:</span> {media.platforms.slice(0, 3).join(', ')}
+                  </p>
+                )}
+                
+                {/* Developer/Publisher */}
+                {media.developers && media.developers.length > 0 && (
+                  <p className="text-white text-xs opacity-80">
+                    <span className="font-semibold">Developer:</span> {media.developers[0]}
+                  </p>
+                )}
+                
+                {/* TV Shows - Seasons/Episodes */}
+                {(media.seasons || media.episodes) && (
+                  <p className="text-white text-xs opacity-80">
+                    {media.seasons && `${media.seasons} seasons`}
+                    {media.seasons && media.episodes && ', '}
+                    {media.episodes && `${media.episodes} episodes`}
+                  </p>
+                )}
+                
+                {/* Books/Manga - Author */}
+                {media.authors && media.authors.length > 0 && (
+                  <p className="text-white text-xs opacity-80">
+                    <span className="font-semibold">By:</span> {media.authors[0]}
+                  </p>
                 )}
               </div>
+            )}
+          </div>
+          
+          {/* Action Buttons */}
+          {isUserItem ? (
+            // User list item actions
+            <div className="absolute bottom-3 left-3 right-3 flex gap-2">
+              <select
+                value={isUserItem.list_item?.status || 'planning'}
+                onChange={(e) => handleStatusChange(isUserItem.list_item.id, e.target.value)}
+                className={`flex-1 px-2 py-2 ${theme === 'dark' ? 'bg-gray-700/90 text-white border-gray-600/40' : 'bg-white/90 text-gray-900 border-gray-300/40'} border rounded-lg text-xs font-medium backdrop-blur-sm transition-all hover:scale-105`}
+              >
+                <option value="planning">📝 Planning</option>
+                <option value="watching">👀 Watching</option>
+                <option value="completed">✅ Completed</option>
+                <option value="paused">⏸️ Paused</option>
+                <option value="dropped">❌ Dropped</option>
+                {mediaType === 'game' && <option value="playing">🎮 Playing</option>}
+                {(mediaType === 'book' || mediaType === 'manga') && <option value="reading">📖 Reading</option>}
+              </select>
+              <button
+                onClick={() => handleRemove(isUserItem.list_item.id)}
+                className="px-3 py-2 bg-gradient-to-r from-red-500 to-red-600 text-white rounded-lg hover:from-red-600 hover:to-red-700 transition-all duration-200 text-xs font-medium shadow-lg hover:shadow-xl transform hover:scale-105"
+              >
+                🗑️
+              </button>
             </div>
+          ) : (
+            // Add to List Button for search results
+            <AddToListButton 
+              media={media}
+              isInUserList={isInUserList}
+              onAddToList={onAddToList}
+              theme={theme}
+              mediaType={mediaType}
+            />
+          )}
+        </div>
+        
+        {/* Card Footer - Title and Year (Always Visible) */}
+        <div className="p-4">
+          <h3 className={`font-bold text-sm mb-1 line-clamp-2 ${theme === 'dark' ? 'text-white' : 'text-gray-900'}`}>
+            {media.title}
+          </h3>
+          <div className="flex items-center justify-between">
+            {media.year && (
+              <span className={`text-xs ${theme === 'dark' ? 'text-gray-400' : 'text-gray-600'}`}>
+                {media.year}
+              </span>
+            )}
+            {/* Quick status indicator for user items */}
+            {isUserItem && isUserItem.list_item?.status && (
+              <span className={`text-xs px-2 py-1 rounded-full ${
+                isUserItem.list_item.status === 'completed' ? 'bg-green-100 text-green-700' :
+                isUserItem.list_item.status === 'watching' ? 'bg-blue-100 text-blue-700' :
+                isUserItem.list_item.status === 'planning' ? 'bg-yellow-100 text-yellow-700' :
+                'bg-gray-100 text-gray-700'
+              }`}>
+                {isUserItem.list_item.status}
+              </span>
+            )}
           </div>
         </div>
       </div>
