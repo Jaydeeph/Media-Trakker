@@ -718,7 +718,7 @@ const ProfilePage = ({ userListItems, onUpdateItem, onRemoveItem }) => {
 };
 
 // Enhanced Media Page Component with Its Own Search Bar and State
-const MediaPage = ({ mediaType, searchResults, searchQuery, loading, userMediaItems, onAddToList, onUpdateItem, onRemoveItem, onSearch }) => {
+const MediaPage = ({ mediaType, searchResults = [], searchQuery = '', loading = false, userMediaItems = [], onAddToList, onUpdateItem, onRemoveItem, onSearch }) => {
   const { theme } = useTheme();
   const [localSearchQuery, setLocalSearchQuery] = useState(searchQuery || '');
   
@@ -726,6 +726,9 @@ const MediaPage = ({ mediaType, searchResults, searchQuery, loading, userMediaIt
   useEffect(() => {
     setLocalSearchQuery(searchQuery || '');
   }, [searchQuery]);
+  
+  // Ensure searchResults is always an array
+  const safeSearchResults = searchResults || [];
   
   const getMediaTypeInfo = (type) => {
     const info = {
