@@ -94,12 +94,23 @@ class UserPreferences(Base):
 
 # Create all tables
 def create_tables():
-    Base.metadata.create_all(bind=engine)
+    if db_available and engine:
+        try:
+            Base.metadata.create_all(bind=engine)
+            logging.info("Database tables created successfully")
+        except Exception as e:
+            logging.error(f"Error creating tables: {str(e)}")
+    else:
+        logging.info("Database not available - skipping table creation")
 
 # Database session dependency
 def get_db():
-    db = SessionLocal()
-    try:
-        yield db
-    finally:
-        db.close()
+    if db_available and SessionLocal:
+        db = SessionLocal()
+        try:
+            yield db
+        finally:
+            db.close()
+    else:
+        # Return None when database is not available
+        yield None
