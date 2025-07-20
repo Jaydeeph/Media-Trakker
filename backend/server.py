@@ -233,6 +233,35 @@ async def search_igdb_games(query: str, page: int = 1):
             return []
 
 # Helper functions to create MediaItem objects and cache them in PostgreSQL
+def create_temp_media_item(media_data):
+    """Create a temporary media item object when database is not available"""
+    return type('MediaItem', (), {
+        'id': str(uuid.uuid4()),
+        'external_id': media_data.get('external_id', ''),
+        'title': media_data.get('title', ''),
+        'media_type': media_data.get('media_type', ''),
+        'year': media_data.get('year'),
+        'genres': media_data.get('genres', []),
+        'poster_path': media_data.get('poster_path'),
+        'overview': media_data.get('overview'),
+        'backdrop_path': media_data.get('backdrop_path'),
+        'vote_average': media_data.get('vote_average'),
+        'release_date': media_data.get('release_date'),
+        'seasons': media_data.get('seasons'),
+        'episodes': media_data.get('episodes'),
+        'chapters': media_data.get('chapters'),
+        'volumes': media_data.get('volumes'),
+        'authors': media_data.get('authors', []),
+        'publisher': media_data.get('publisher'),
+        'page_count': media_data.get('page_count'),
+        'platforms': media_data.get('platforms', []),
+        'developers': media_data.get('developers', []),
+        'publishers': media_data.get('publishers', []),
+        'release_year': media_data.get('release_year'),
+        'rating': media_data.get('rating'),
+        'game_modes': media_data.get('game_modes', [])
+    })()
+
 def create_media_item_from_tmdb_movie(movie_data, db: Session):
     if not db or not db_available:
         # Return a temporary media item without saving to database
