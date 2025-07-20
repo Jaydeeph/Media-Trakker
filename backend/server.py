@@ -834,9 +834,34 @@ async def search_media(query: str = Query(...), media_type: str = Query(...), pa
 @api_router.post("/user-list")
 async def add_to_user_list(item: UserListItemCreate, db: Session = Depends(get_db)):
     if not db or not db_available:
-        # When database is not available, return success but don't actually save
-        # In a real app, you might want to queue this for later or use a different storage
-        return {"message": "Item added to list (temporary - database not available)"}
+        # Use in-memory storage when database is not available
+        from database import memory_storage
+        import uuid
+        from datetime import datetime
+        
+        # Check if item already exists
+        existing_item = next((i for i in memory_storage['user_list'] 
+                            if i['media_id'] == item.media_id), None)
+        
+        if existing_item:
+            raise HTTPException(status_code=400, detail="Item already in your list")
+            
+        # Add to memory storage
+        new_item = {
+            'id': str(uuid.uuid4()),
+            'user_id': 'demo_user',
+            'media_id': item.media_id,
+            'media_type': item.media_type,
+            'status': item.status,
+            'rating': item.rating,
+            'notes': item.notes,
+            'progress': item.progress,
+            'created_at': datetime.utcnow().isoformat(),
+            'updated_at': datetime.utcnow().isoformat()
+        }
+        memory_storage['user_list'].append(new_item)
+        
+        return {"message": "Item added to list", "id": new_item['id']}
         
     try:
         # Check if item already exists
