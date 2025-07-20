@@ -470,11 +470,17 @@ async def search_media(query: str = Query(...), media_type: str = Query(...), pa
         raise HTTPException(status_code=400, detail=f"Media type must be one of: {', '.join(valid_media_types)}")
     
     try:
-        # Check PostgreSQL cache first
-        cached_results = db.query(MediaItem).filter(
-            MediaItem.title.ilike(f"%{query}%"),
-            MediaItem.media_type == media_type
-        ).limit(10).all()
+        # Check PostgreSQL cache first (only if database is available)
+        cached_results = []
+        if db and db_available:
+            try:
+                cached_results = db.query(MediaItem).filter(
+                    MediaItem.title.ilike(f"%{query}%"),
+                    MediaItem.media_type == media_type
+                ).limit(10).all()
+            except Exception as db_error:
+                logging.error(f"Database query failed: {str(db_error)}")
+                cached_results = []
         
         if cached_results and len(cached_results) >= 5:
             return {
