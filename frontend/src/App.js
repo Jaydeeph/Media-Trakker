@@ -942,16 +942,16 @@ const MediaPage = ({ mediaType, searchResults = [], searchQuery = '', loading = 
         <div className="space-y-4">
           <h2 className={`text-2xl font-bold ${theme === 'dark' ? 'text-white' : 'text-gray-900'}`}>
             {loading ? 'Searching...' : `Search Results for "${localSearchQuery}"`}
-            {!loading && searchResults.length > 0 && ` (${searchResults.length})`}
+            {!loading && safeSearchResults.length > 0 && ` (${safeSearchResults.length})`}
           </h2>
           
           {loading ? (
             <div className="flex justify-center py-12">
               <div className="w-8 h-8 border-4 border-red-600 border-t-transparent rounded-full animate-spin"></div>
             </div>
-          ) : searchResults.length > 0 ? (
+          ) : safeSearchResults.length > 0 ? (
             <div className="space-y-4">
-              {searchResults.map(media => renderMediaCard(media))}
+              {safeSearchResults.map(media => renderMediaCard(media))}
             </div>
           ) : (
             <div className={`text-center py-12 ${theme === 'dark' ? 'text-gray-400' : 'text-gray-600'}`}>
