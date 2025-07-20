@@ -832,7 +832,7 @@ const MediaPage = ({ mediaType, searchResults = [], searchQuery = '', loading = 
     }
   };
 
-  const renderMediaCard = (media, isUserItem = false) => {
+  const renderMediaCard = (media, isUserItem = false, advancedMode) => {
     const isInUserList = userMediaItems.some(item => item.media_item.external_id === media.external_id);
     
     return (
