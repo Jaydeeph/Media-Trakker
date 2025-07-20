@@ -377,6 +377,30 @@ def create_media_item_from_tmdb_tv(tv_data, db: Session):
         return create_temp_media_item(media_data)
 
 def create_media_item_from_anilist(item_data, media_type, db: Session):
+    if not db or not db_available:
+        # Return a temporary media item without saving to database
+        try:
+            title = item_data["title"]["english"] or item_data["title"]["romaji"] or item_data["title"]["native"]
+            start_date = item_data.get("startDate")
+            year = start_date.get("year") if start_date else None
+            
+            return create_temp_media_item({
+                'external_id': str(item_data["id"]),
+                'title': title,
+                'media_type': media_type.lower(),
+                'year': year,
+                'genres': item_data.get("genres", []),
+                'poster_path': item_data["coverImage"]["large"] if item_data.get("coverImage") else None,
+                'overview': item_data.get("description"),
+                'vote_average': item_data.get("averageScore"),
+                'chapters': item_data.get("chapters"),
+                'volumes': item_data.get("volumes"),
+                'episodes': item_data.get("episodes")
+            })
+        except Exception as e:
+            logging.error(f"Error creating temporary AniList item: {str(e)}")
+            return None
+            
     try:
         title = item_data["title"]["english"] or item_data["title"]["romaji"] or item_data["title"]["native"]
         start_date = item_data.get("startDate")
