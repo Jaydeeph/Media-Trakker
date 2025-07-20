@@ -234,6 +234,26 @@ async def search_igdb_games(query: str, page: int = 1):
 
 # Helper functions to create MediaItem objects and cache them in PostgreSQL
 def create_media_item_from_tmdb_movie(movie_data, db: Session):
+    if not db or not db_available:
+        # Return a temporary media item without saving to database
+        return type('MediaItem', (), {
+            'id': str(uuid.uuid4()),
+            'external_id': str(movie_data["id"]),
+            'title': movie_data["title"],
+            'media_type': "movie",
+            'year': int(movie_data["release_date"][:4]) if movie_data.get("release_date") else None,
+            'genres': [genre["name"] for genre in movie_data.get("genres", [])],
+            'poster_path': f"{TMDB_IMAGE_BASE_URL}{movie_data['poster_path']}" if movie_data.get("poster_path") else None,
+            'overview': movie_data.get("overview"),
+            'backdrop_path': f"{TMDB_IMAGE_BASE_URL}{movie_data['backdrop_path']}" if movie_data.get("backdrop_path") else None,
+            'vote_average': movie_data.get("vote_average"),
+            'release_date': movie_data.get("release_date"),
+            'seasons': None, 'episodes': None, 'chapters': None, 'volumes': None,
+            'authors': [], 'publisher': None, 'page_count': None,
+            'platforms': [], 'developers': [], 'publishers': [], 
+            'release_year': None, 'rating': None, 'game_modes': []
+        })()
+        
     media_data = {
         "external_id": str(movie_data["id"]),
         "title": movie_data["title"],
@@ -247,20 +267,32 @@ def create_media_item_from_tmdb_movie(movie_data, db: Session):
         "release_date": movie_data.get("release_date")
     }
     
-    # Check if already exists
-    existing = db.query(MediaItem).filter(
-        MediaItem.external_id == media_data["external_id"],
-        MediaItem.media_type == "movie"
-    ).first()
-    
-    if existing:
-        return existing
-    
-    media_item = MediaItem(**media_data)
-    db.add(media_item)
-    db.commit()
-    db.refresh(media_item)
-    return media_item
+    try:
+        # Check if already exists
+        existing = db.query(MediaItem).filter(
+            MediaItem.external_id == media_data["external_id"],
+            MediaItem.media_type == "movie"
+        ).first()
+        
+        if existing:
+            return existing
+        
+        media_item = MediaItem(**media_data)
+        db.add(media_item)
+        db.commit()
+        db.refresh(media_item)
+        return media_item
+    except Exception as e:
+        logging.error(f"Error saving movie to database: {str(e)}")
+        # Return temporary media item without saving
+        return type('MediaItem', (), {
+            'id': str(uuid.uuid4()),
+            **media_data,
+            'seasons': None, 'episodes': None, 'chapters': None, 'volumes': None,
+            'authors': [], 'publisher': None, 'page_count': None,
+            'platforms': [], 'developers': [], 'publishers': [], 
+            'release_year': None, 'rating': None, 'game_modes': []
+        })()
 
 def create_media_item_from_tmdb_tv(tv_data, db: Session):
     media_data = {
