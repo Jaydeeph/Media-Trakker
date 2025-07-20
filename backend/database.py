@@ -9,10 +9,17 @@ import logging
 # PostgreSQL Database Setup with fallback handling
 POSTGRES_URL = os.environ.get('POSTGRES_URL', 'postgresql://postgres:password@localhost:5432/media_trakker')
 
-# Database connection with error handling
+# Database connection with error handling and in-memory fallback
 engine = None
 SessionLocal = None
 db_available = False
+
+# In-memory storage for when database is not available
+memory_storage = {
+    'user_list': [],
+    'user_preferences': {'theme': 'dark', 'language': 'en', 'notifications_enabled': True},
+    'stats': {}
+}
 
 try:
     engine = create_engine(POSTGRES_URL)
@@ -24,7 +31,7 @@ try:
     logging.info("PostgreSQL connection successful")
 except Exception as e:
     logging.error(f"PostgreSQL connection failed: {str(e)}")
-    logging.info("Running without database - search will work but data won't be cached")
+    logging.info("Using in-memory storage - data will not persist between restarts")
     db_available = False
 
 Base = declarative_base()
