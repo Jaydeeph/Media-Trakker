@@ -1232,6 +1232,7 @@ function App() {
             onUpdateItem={handleUpdateItem}
             onRemoveItem={handleRemoveItem}
             onSearch={handleSearch}
+            advancedMode={advancedMode}
           />
         );
       case 'profile':
