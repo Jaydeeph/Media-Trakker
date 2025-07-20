@@ -722,6 +722,9 @@ const MediaPage = ({ mediaType, searchResults = [], searchQuery = '', loading = 
   const { theme } = useTheme();
   const [localSearchQuery, setLocalSearchQuery] = useState(searchQuery || '');
   
+  // Debug logging
+  console.log('MediaPage rendered:', { mediaType, searchResults: searchResults?.length, userMediaItems: userMediaItems?.length });
+  
   // Sync local search query with parent state
   useEffect(() => {
     setLocalSearchQuery(searchQuery || '');
@@ -743,6 +746,7 @@ const MediaPage = ({ mediaType, searchResults = [], searchQuery = '', loading = 
   };
 
   const mediaInfo = getMediaTypeInfo(mediaType);
+  console.log('MediaInfo for', mediaType, ':', mediaInfo);
 
   const handleSearch = async (e) => {
     e.preventDefault();
