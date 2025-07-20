@@ -324,6 +324,23 @@ def create_media_item_from_tmdb_movie(movie_data, db: Session):
         })()
 
 def create_media_item_from_tmdb_tv(tv_data, db: Session):
+    if not db or not db_available:
+        # Return a temporary media item without saving to database
+        return create_temp_media_item({
+            'external_id': str(tv_data["id"]),
+            'title': tv_data.get("name", tv_data.get("original_name")),
+            'media_type': "tv",
+            'year': int(tv_data["first_air_date"][:4]) if tv_data.get("first_air_date") else None,
+            'genres': [genre["name"] for genre in tv_data.get("genres", [])],
+            'poster_path': f"{TMDB_IMAGE_BASE_URL}{tv_data['poster_path']}" if tv_data.get("poster_path") else None,
+            'overview': tv_data.get("overview"),
+            'backdrop_path': f"{TMDB_IMAGE_BASE_URL}{tv_data['backdrop_path']}" if tv_data.get("backdrop_path") else None,
+            'vote_average': tv_data.get("vote_average"),
+            'release_date': tv_data.get("first_air_date"),
+            'seasons': tv_data.get("number_of_seasons"),
+            'episodes': tv_data.get("number_of_episodes")
+        })
+        
     media_data = {
         "external_id": str(tv_data["id"]),
         "title": tv_data.get("name", tv_data.get("original_name")),
@@ -339,19 +356,25 @@ def create_media_item_from_tmdb_tv(tv_data, db: Session):
         "episodes": tv_data.get("number_of_episodes")
     }
     
-    existing = db.query(MediaItem).filter(
-        MediaItem.external_id == media_data["external_id"],
-        MediaItem.media_type == "tv"
-    ).first()
-    
-    if existing:
-        return existing
-    
-    media_item = MediaItem(**media_data)
-    db.add(media_item)
-    db.commit()
-    db.refresh(media_item)
-    return media_item
+    try:
+        # Check if already exists
+        existing = db.query(MediaItem).filter(
+            MediaItem.external_id == media_data["external_id"],
+            MediaItem.media_type == "tv"
+        ).first()
+        
+        if existing:
+            return existing
+        
+        media_item = MediaItem(**media_data)
+        db.add(media_item)
+        db.commit()
+        db.refresh(media_item)
+        return media_item
+    except Exception as e:
+        logging.error(f"Error saving TV show to database: {str(e)}")
+        # Return temporary media item without saving
+        return create_temp_media_item(media_data)
 
 def create_media_item_from_anilist(item_data, media_type, db: Session):
     try:
