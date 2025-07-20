@@ -1009,18 +1009,43 @@ const MediaPage = ({ mediaType, searchResults = [], searchQuery = '', loading = 
   return (
     <div className="space-y-8">
       {/* Page Header with Integrated Search */}
-      <div className={`${theme === 'dark' ? 'bg-gray-800' : 'bg-white'} rounded-2xl p-6`}>
-        <div className="flex items-center gap-4 mb-6">
-          <div className={`w-12 h-12 ${theme === 'dark' ? 'bg-gray-700' : 'bg-gray-100'} rounded-2xl flex items-center justify-center`}>
-            <span className="text-2xl">{mediaInfo.icon}</span>
+      <div className={`${theme === 'dark' ? 'bg-gray-800' : 'bg-white'} rounded-2xl p-6 shadow-xl border ${theme === 'dark' ? 'border-gray-700/50' : 'border-gray-200/50'}`}>
+        <div className="flex items-center justify-between gap-4 mb-6">
+          <div className="flex items-center gap-4">
+            <div className={`w-12 h-12 ${theme === 'dark' ? 'bg-gray-700' : 'bg-gray-100'} rounded-2xl flex items-center justify-center`}>
+              <span className="text-2xl">{mediaInfo.icon}</span>
+            </div>
+            <div>
+              <h1 className={`text-3xl font-bold ${theme === 'dark' ? 'text-white' : 'text-gray-900'}`}>
+                {mediaInfo.title}
+              </h1>
+              <p className={`${theme === 'dark' ? 'text-gray-400' : 'text-gray-600'}`}>
+                {mediaInfo.description}
+              </p>
+            </div>
           </div>
-          <div>
-            <h1 className={`text-3xl font-bold ${theme === 'dark' ? 'text-white' : 'text-gray-900'}`}>
-              {mediaInfo.title}
-            </h1>
-            <p className={`${theme === 'dark' ? 'text-gray-400' : 'text-gray-600'}`}>
-              {mediaInfo.description}
-            </p>
+          
+          {/* Advanced Mode Toggle */}
+          <div className="flex items-center gap-4">
+            <div className="flex items-center gap-2">
+              <span className={`text-sm font-medium ${theme === 'dark' ? 'text-gray-300' : 'text-gray-700'}`}>
+                Simple
+              </span>
+              <button
+                onClick={onToggleAdvancedMode}
+                className={`relative w-12 h-6 rounded-full transition-all duration-200 ${advancedMode ? 'bg-gradient-to-r from-emerald-500 to-emerald-600' : theme === 'dark' ? 'bg-gray-600' : 'bg-gray-300'}`}
+              >
+                <div className={`absolute w-5 h-5 bg-white rounded-full shadow-lg transition-all duration-200 transform ${advancedMode ? 'translate-x-6' : 'translate-x-0.5'} top-0.5`}></div>
+              </button>
+              <span className={`text-sm font-medium ${theme === 'dark' ? 'text-gray-300' : 'text-gray-700'}`}>
+                Advanced
+              </span>
+            </div>
+            {advancedMode && (
+              <div className={`px-3 py-1 ${theme === 'dark' ? 'bg-emerald-900/30 text-emerald-300' : 'bg-emerald-100 text-emerald-700'} rounded-full text-xs font-bold uppercase tracking-wide`}>
+                ✨ Pro Mode
+              </div>
+            )}
           </div>
         </div>
         
