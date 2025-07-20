@@ -900,8 +900,59 @@ async def add_to_user_list(item: UserListItemCreate, db: Session = Depends(get_d
 @api_router.get("/user-list")
 async def get_user_list(status: Optional[str] = None, media_type: Optional[str] = None, db: Session = Depends(get_db)):
     if not db or not db_available:
-        # Return empty list when database is not available
-        return []
+        # Use in-memory storage when database is not available
+        from database import memory_storage
+        
+        # Filter items from memory storage
+        items = memory_storage['user_list']
+        
+        if status:
+            items = [item for item in items if item['status'] == status]
+        if media_type:
+            items = [item for item in items if item['media_type'] == media_type]
+            
+        # Convert to expected format (similar to enriched items)
+        enriched_items = []
+        for item in items:
+            enriched_items.append({
+                'list_item': {
+                    'id': item['id'],
+                    'status': item['status'],
+                    'rating': item['rating'],
+                    'notes': item['notes'],
+                    'progress': item['progress'],
+                    'created_at': item['created_at'],
+                    'updated_at': item['updated_at']
+                },
+                'media_item': {
+                    'id': item['media_id'],
+                    'external_id': item['media_id'],
+                    'title': f"Media Item {item['media_id'][:8]}",  # Placeholder
+                    'media_type': item['media_type'],
+                    'year': None,
+                    'genres': [],
+                    'poster_path': None,
+                    'overview': 'In-memory storage item',
+                    'backdrop_path': None,
+                    'vote_average': None,
+                    'release_date': None,
+                    'seasons': None,
+                    'episodes': None,
+                    'chapters': None,
+                    'volumes': None,
+                    'authors': [],
+                    'publisher': None,
+                    'page_count': None,
+                    'platforms': [],
+                    'developers': [],
+                    'publishers': [],
+                    'release_year': None,
+                    'rating': None,
+                    'game_modes': []
+                }
+            })
+            
+        return enriched_items
         
     try:
         query = db.query(UserList).filter(UserList.user_id == "demo_user")
