@@ -1125,7 +1125,7 @@ const MediaPage = ({ mediaType, searchResults = [], searchQuery = '', loading = 
               <div className="w-8 h-8 border-4 border-red-600 border-t-transparent rounded-full animate-spin"></div>
             </div>
           ) : safeSearchResults.length > 0 ? (
-            <div className="space-y-4">
+            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-6">
               {safeSearchResults.map(media => renderMediaCard(media, false, advancedMode))}
             </div>
           ) : (
