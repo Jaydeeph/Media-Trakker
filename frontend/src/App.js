@@ -502,104 +502,107 @@ const Dashboard = ({ stats, userListItems }) => {
 
 // Settings Page Component
 const SettingsPage = () => {
-  const { theme, setTheme } = useTheme();
-  const [saved, setSaved] = useState(false);
-
-  const handleThemeChange = async (newTheme) => {
-    await setTheme(newTheme);
-    setSaved(true);
-    setTimeout(() => setSaved(false), 2000);
-  };
-
-  const resetToDefault = async () => {
-    await setTheme('dark');
-    setSaved(true);
-    setTimeout(() => setSaved(false), 2000);
-  };
-
+  const { theme, themeName, themeConfig, changeTheme, allThemes } = useTheme();
+  
   return (
-    <div className={`space-y-8 max-w-4xl mx-auto ${theme === 'dark' ? 'text-white' : 'text-gray-900'}`}>
-      <div>
-        <h1 className="text-3xl font-bold mb-2">Settings</h1>
-        <p className={theme === 'dark' ? 'text-gray-400' : 'text-gray-600'}>Customize your Media Trakker experience</p>
-      </div>
-
+    <div className="space-y-8">
+      {/* Settings Header */}
+      <ThemedCard themeName={themeName} className="p-8">
+        <ThemedText themeName={themeName} variant="primary" size="4xl" weight="bold" as="h1" className="mb-2">
+          Settings
+        </ThemedText>
+        <ThemedText themeName={themeName} variant="secondary" size="lg">
+          Customize your Media Trakker experience
+        </ThemedText>
+      </ThemedCard>
+      
       {/* Theme Settings */}
-      <div className={`${theme === 'dark' ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-100'} rounded-2xl shadow-sm border p-6`}>
-        <h2 className="text-xl font-semibold mb-6">Appearance</h2>
-        
-        <div className="space-y-6">
+      <ThemedCard themeName={themeName} className="p-8">
+        <div className="flex items-center justify-between mb-6">
           <div>
-            <label className="text-sm font-medium mb-3 block">Theme</label>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <button
-                onClick={() => handleThemeChange('light')}
-                className={`p-4 rounded-xl border-2 transition-all duration-200 ${
-                  theme === 'light'
-                    ? 'border-red-500 bg-red-50 dark:bg-red-900/20'
-                    : theme === 'dark' 
-                      ? 'border-gray-600 bg-gray-700 hover:border-gray-500'
-                      : 'border-gray-300 bg-gray-50 hover:border-gray-400'
-                }`}
-              >
-                <div className="flex items-center gap-3">
-                  <div className="w-12 h-12 bg-white border-2 border-gray-200 rounded-lg flex items-center justify-center">
-                    <span className="text-xl">☀️</span>
-                  </div>
-                  <div className="text-left">
-                    <p className={`font-medium ${theme === 'dark' ? 'text-white' : 'text-gray-900'}`}>Light Mode</p>
-                    <p className={`text-sm ${theme === 'dark' ? 'text-gray-400' : 'text-gray-500'}`}>Classic bright interface</p>
-                  </div>
-                </div>
-              </button>
-
-              <button
-                onClick={() => handleThemeChange('dark')}
-                className={`p-4 rounded-xl border-2 transition-all duration-200 ${
-                  theme === 'dark'
-                    ? 'border-red-500 bg-red-900/20'
-                    : 'border-gray-300 bg-gray-50 hover:border-gray-400'
-                }`}
-              >
-                <div className="flex items-center gap-3">
-                  <div className="w-12 h-12 bg-gray-900 border-2 border-gray-700 rounded-lg flex items-center justify-center">
-                    <span className="text-xl">🌙</span>
-                  </div>
-                  <div className="text-left">
-                    <p className={`font-medium ${theme === 'dark' ? 'text-white' : 'text-gray-900'}`}>Dark Mode</p>
-                    <p className={`text-sm ${theme === 'dark' ? 'text-gray-400' : 'text-gray-500'}`}>Easy on the eyes</p>
-                  </div>
-                </div>
-              </button>
-            </div>
+            <ThemedText themeName={themeName} variant="primary" size="2xl" weight="bold" as="h2" className="mb-2">
+              Theme Selection
+            </ThemedText>
+            <ThemedText themeName={themeName} variant="secondary" size="base">
+              Choose your preferred color theme for the application
+            </ThemedText>
           </div>
-
-          <div className="flex items-center justify-between pt-4 border-t border-gray-200 dark:border-gray-700">
-            <button
-              onClick={resetToDefault}
-              className={`px-4 py-2 ${theme === 'dark' ? 'bg-gray-700 hover:bg-gray-600 text-white' : 'bg-gray-100 hover:bg-gray-200 text-gray-900'} rounded-lg transition-colors`}
+        </div>
+        
+        {/* Theme Grid */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {allThemes.map((themeOption) => (
+            <div
+              key={themeOption.meta.name}
+              className={`
+                relative p-6 rounded-2xl border-2 cursor-pointer transition-all duration-200 transform hover:scale-105
+                ${themeName === themeOption.meta.name 
+                  ? `border-blue-500 ${theme === 'dark' ? 'bg-gray-800' : 'bg-gray-50'}` 
+                  : `border-gray-300 dark:border-gray-600 hover:border-gray-400 ${theme === 'dark' ? 'bg-gray-800/50' : 'bg-white'}`
+                }
+              `}
+              onClick={() => changeTheme(themeOption.meta.name)}
             >
-              Reset to Default
-            </button>
-            
-            {saved && (
-              <div className="flex items-center gap-2 text-green-600">
-                <span className="text-lg">✅</span>
-                <span className="text-sm font-medium">Settings saved!</span>
+              {/* Theme Preview */}
+              <div className="mb-4">
+                <div className={`w-full h-20 ${themeOption.bg.primary} rounded-lg border ${themeOption.border.primary} flex items-center justify-center mb-3`}>
+                  <div className={`w-8 h-8 ${themeOption.bg.accent} rounded-full`}></div>
+                </div>
+                <div className="flex gap-2">
+                  <div className={`flex-1 h-2 ${themeOption.bg.secondary} rounded`}></div>
+                  <div className={`flex-1 h-2 ${themeOption.bg.tertiary} rounded`}></div>
+                  <div className={`flex-1 h-2 ${themeOption.bg.accent} rounded`}></div>
+                </div>
               </div>
-            )}
+              
+              {/* Theme Info */}
+              <div className="text-center">
+                <h3 className={`font-bold text-lg mb-1 ${themeOption.text.primary}`}>
+                  {themeOption.meta.displayName}
+                </h3>
+                <p className={`text-sm ${themeOption.text.secondary}`}>
+                  {themeOption.meta.isDark ? 'Dark Theme' : 'Light Theme'}
+                </p>
+              </div>
+              
+              {/* Selected Indicator */}
+              {themeName === themeOption.meta.name && (
+                <div className="absolute top-3 right-3 w-6 h-6 bg-blue-500 rounded-full flex items-center justify-center">
+                  <svg className="w-4 h-4 text-white" fill="currentColor" viewBox="0 0 20 20">
+                    <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                  </svg>
+                </div>
+              )}
+            </div>
+          ))}
+        </div>
+        
+        {/* Current Theme Info */}
+        <div className={`mt-8 p-4 ${themeConfig.bg.secondary} ${themeConfig.border.primary} border rounded-xl`}>
+          <div className="flex items-center gap-3">
+            <div 
+              className="w-4 h-4 rounded-full" 
+              style={{ backgroundColor: themeConfig.meta.accentColor }}
+            ></div>
+            <ThemedText themeName={themeName} variant="primary" weight="medium">
+              Current Theme: {themeConfig.meta.displayName}
+            </ThemedText>
           </div>
+          <ThemedText themeName={themeName} variant="secondary" size="sm" className="mt-1">
+            {themeConfig.meta.isDark ? 'Dark mode with' : 'Light mode with'} {themeConfig.meta.accentColor} accent
+          </ThemedText>
         </div>
-      </div>
-
-      {/* Future Settings Sections */}
-      <div className={`${theme === 'dark' ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-100'} rounded-2xl shadow-sm border p-6`}>
-        <h2 className="text-xl font-semibold mb-4">More Settings</h2>
-        <div className={`text-center py-8 ${theme === 'dark' ? 'text-gray-400' : 'text-gray-500'}`}>
-          <p>Additional settings coming soon...</p>
-          <p className="text-sm mt-1">Language preferences, notifications, and more!</p>
-        </div>
-      </div>
+      </ThemedCard>
+      
+      {/* Other Settings */}
+      <ThemedCard themeName={themeName} className="p-8">
+        <ThemedText themeName={themeName} variant="primary" size="2xl" weight="bold" as="h2" className="mb-4">
+          Other Settings
+        </ThemedText>
+        <ThemedText themeName={themeName} variant="secondary">
+          Additional settings will be added here in future updates.
+        </ThemedText>
+      </ThemedCard>
     </div>
   );
 };
