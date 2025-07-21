@@ -75,6 +75,26 @@ class UserListItemCreate(BaseModel):
     progress: Optional[Dict] = None
     rating: Optional[float] = None
     notes: Optional[str] = None
+    # Complete media information
+    title: Optional[str] = None
+    poster_path: Optional[str] = None
+    year: Optional[int] = None
+    overview: Optional[str] = None
+    genres: Optional[List[str]] = []
+    vote_average: Optional[float] = None
+    # Media-specific fields
+    seasons: Optional[int] = None
+    episodes: Optional[int] = None
+    chapters: Optional[int] = None
+    volumes: Optional[int] = None
+    authors: Optional[List[str]] = []
+    publisher: Optional[str] = None
+    page_count: Optional[int] = None
+    platforms: Optional[List[str]] = []
+    developers: Optional[List[str]] = []
+    publishers: Optional[List[str]] = []
+    release_year: Optional[int] = None
+    game_modes: Optional[List[str]] = []
 
 class UserListItemUpdate(BaseModel):
     status: Optional[str] = None
