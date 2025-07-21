@@ -757,7 +757,7 @@ const AddToListButton = ({ media, isInUserList, onAddToList, theme, mediaType })
   }
   
   return (
-    <div className="absolute bottom-3 left-3 right-3">
+    <div className="absolute bottom-3 left-3 right-3 z-10">
       {!showStatusDropdown ? (
         <button
           onClick={() => setShowStatusDropdown(true)}
@@ -769,8 +769,8 @@ const AddToListButton = ({ media, isInUserList, onAddToList, theme, mediaType })
           </svg>
         </button>
       ) : (
-        <div className={`${theme === 'dark' ? 'bg-gray-900/95' : 'bg-white/95'} backdrop-blur-xl rounded-2xl border ${theme === 'dark' ? 'border-gray-700/30' : 'border-gray-200/30'} shadow-2xl overflow-hidden`}>
-          <div className="p-3">
+        <div className={`absolute bottom-0 left-0 right-0 ${theme === 'dark' ? 'bg-gray-900/95' : 'bg-white/95'} backdrop-blur-xl rounded-2xl border ${theme === 'dark' ? 'border-gray-700/30' : 'border-gray-200/30'} shadow-2xl overflow-hidden max-h-80 z-50`}>
+          <div className="p-3 max-h-72 overflow-y-auto">
             <div className={`text-xs font-semibold ${theme === 'dark' ? 'text-gray-400' : 'text-gray-500'} px-3 py-2 uppercase tracking-wider`}>
               Add to List
             </div>
