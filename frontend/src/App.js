@@ -19,8 +19,11 @@ const useTheme = () => {
 };
 
 const ThemeProvider = ({ children }) => {
-  const [theme, setTheme] = useState('dark'); // Default to dark mode
+  const [currentThemeName, setCurrentThemeName] = useState(DEFAULT_THEME);
   const [isLoading, setIsLoading] = useState(true);
+  
+  // Get the current theme configuration
+  const themeConfig = useThemeConfig(currentThemeName);
 
   useEffect(() => {
     loadUserPreferences();
@@ -29,27 +32,40 @@ const ThemeProvider = ({ children }) => {
   const loadUserPreferences = async () => {
     try {
       const response = await axios.get(`${API}/user-preferences`);
-      setTheme(response.data.theme || 'dark');
+      const themeName = response.data.theme || DEFAULT_THEME;
+      if (getThemeNames().includes(themeName)) {
+        setCurrentThemeName(themeName);
+      }
     } catch (error) {
       console.error('Error loading preferences:', error);
-      setTheme('dark'); // Default to dark if error
+      setCurrentThemeName(DEFAULT_THEME);
     } finally {
       setIsLoading(false);
     }
   };
 
-  const updateTheme = async (newTheme) => {
+  const updateTheme = async (newThemeName) => {
+    if (!getThemeNames().includes(newThemeName)) return;
+    
+    setCurrentThemeName(newThemeName);
+    
     try {
-      await axios.put(`${API}/user-preferences`, { theme: newTheme });
-      setTheme(newTheme);
+      await axios.put(`${API}/user-preferences`, { theme: newThemeName });
     } catch (error) {
-      console.error('Error updating theme:', error);
+      console.error('Error saving theme preference:', error);
     }
   };
 
   const value = {
-    theme,
-    setTheme: updateTheme,
+    theme: currentThemeName, // Keep backward compatibility
+    themeName: currentThemeName,
+    themeConfig: themeConfig,
+    setTheme: updateTheme, // Keep backward compatibility
+    changeTheme: updateTheme,
+    availableThemes: getThemeNames(),
+    allThemes: getAllThemes(),
+    isLoading
+  };
     isLoading
   };
 
