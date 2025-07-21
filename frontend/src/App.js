@@ -816,6 +816,112 @@ const AddToListButton = ({ media, isInUserList, onAddToList, theme, mediaType })
   );
 };
 
+const SettingsPage = () => {
+  const { theme, themeName, themeConfig, changeTheme, allThemes } = useTheme();
+  
+  return (
+    <div className="space-y-8">
+      {/* Settings Header */}
+      <ThemedCard themeName={themeName} className="p-8">
+        <ThemedText themeName={themeName} variant="primary" size="4xl" weight="bold" as="h1" className="mb-2">
+          Settings
+        </ThemedText>
+        <ThemedText themeName={themeName} variant="secondary" size="lg">
+          Customize your Media Trakker experience
+        </ThemedText>
+      </ThemedCard>
+      
+      {/* Theme Settings */}
+      <ThemedCard themeName={themeName} className="p-8">
+        <div className="flex items-center justify-between mb-6">
+          <div>
+            <ThemedText themeName={themeName} variant="primary" size="2xl" weight="bold" as="h2" className="mb-2">
+              Theme Selection
+            </ThemedText>
+            <ThemedText themeName={themeName} variant="secondary" size="base">
+              Choose your preferred color theme for the application
+            </ThemedText>
+          </div>
+        </div>
+        
+        {/* Theme Grid */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {allThemes.map((themeOption) => (
+            <div
+              key={themeOption.meta.name}
+              className={`
+                relative p-6 rounded-2xl border-2 cursor-pointer transition-all duration-200 transform hover:scale-105
+                ${themeName === themeOption.meta.name 
+                  ? `border-blue-500 ${theme === 'dark' ? 'bg-gray-800' : 'bg-gray-50'}` 
+                  : `border-gray-300 dark:border-gray-600 hover:border-gray-400 ${theme === 'dark' ? 'bg-gray-800/50' : 'bg-white'}`
+                }
+              `}
+              onClick={() => changeTheme(themeOption.meta.name)}
+            >
+              {/* Theme Preview */}
+              <div className="mb-4">
+                <div className={`w-full h-20 ${themeOption.bg.primary} rounded-lg border ${themeOption.border.primary} flex items-center justify-center mb-3`}>
+                  <div className={`w-8 h-8 ${themeOption.bg.accent} rounded-full`}></div>
+                </div>
+                <div className="flex gap-2">
+                  <div className={`flex-1 h-2 ${themeOption.bg.secondary} rounded`}></div>
+                  <div className={`flex-1 h-2 ${themeOption.bg.tertiary} rounded`}></div>
+                  <div className={`flex-1 h-2 ${themeOption.bg.accent} rounded`}></div>
+                </div>
+              </div>
+              
+              {/* Theme Info */}
+              <div className="text-center">
+                <h3 className={`font-bold text-lg mb-1 ${themeOption.text.primary}`}>
+                  {themeOption.meta.displayName}
+                </h3>
+                <p className={`text-sm ${themeOption.text.secondary}`}>
+                  {themeOption.meta.isDark ? 'Dark Theme' : 'Light Theme'}
+                </p>
+              </div>
+              
+              {/* Selected Indicator */}
+              {themeName === themeOption.meta.name && (
+                <div className="absolute top-3 right-3 w-6 h-6 bg-blue-500 rounded-full flex items-center justify-center">
+                  <svg className="w-4 h-4 text-white" fill="currentColor" viewBox="0 0 20 20">
+                    <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                  </svg>
+                </div>
+              )}
+            </div>
+          ))}
+        </div>
+        
+        {/* Current Theme Info */}
+        <div className={`mt-8 p-4 ${themeConfig.bg.secondary} ${themeConfig.border.primary} border rounded-xl`}>
+          <div className="flex items-center gap-3">
+            <div 
+              className="w-4 h-4 rounded-full" 
+              style={{ backgroundColor: themeConfig.meta.accentColor }}
+            ></div>
+            <ThemedText themeName={themeName} variant="primary" weight="medium">
+              Current Theme: {themeConfig.meta.displayName}
+            </ThemedText>
+          </div>
+          <ThemedText themeName={themeName} variant="secondary" size="sm" className="mt-1">
+            {themeConfig.meta.isDark ? 'Dark mode with' : 'Light mode with'} {themeConfig.meta.accentColor} accent
+          </ThemedText>
+        </div>
+      </ThemedCard>
+      
+      {/* Other Settings */}
+      <ThemedCard themeName={themeName} className="p-8">
+        <ThemedText themeName={themeName} variant="primary" size="2xl" weight="bold" as="h2" className="mb-4">
+          Other Settings
+        </ThemedText>
+        <ThemedText themeName={themeName} variant="secondary">
+          Additional settings will be added here in future updates.
+        </ThemedText>
+      </ThemedCard>
+    </div>
+  );
+};
+
 // Enhanced Media Page Component with Its Own Search Bar and State
 const MediaPage = ({ mediaType, searchResults = [], searchQuery = '', loading = false, userMediaItems = [], onAddToList, onUpdateItem, onRemoveItem, onSearch, advancedMode = false, onToggleAdvancedMode }) => {
   const { theme } = useTheme();
