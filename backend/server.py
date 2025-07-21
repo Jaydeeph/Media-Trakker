@@ -950,7 +950,7 @@ async def get_user_list(status: Optional[str] = None, media_type: Optional[str] 
         if media_type:
             items = [item for item in items if item['media_type'] == media_type]
             
-        # Convert to expected format (similar to enriched items)
+        # Convert to expected format with actual saved data
         enriched_items = []
         for item in items:
             enriched_items.append({
@@ -966,28 +966,28 @@ async def get_user_list(status: Optional[str] = None, media_type: Optional[str] 
                 'media_item': {
                     'id': item['media_id'],
                     'external_id': item['media_id'],
-                    'title': f"Media Item {item['media_id'][:8]}",  # Placeholder
+                    'title': item.get('title', f"Unknown {item['media_type']}"),
                     'media_type': item['media_type'],
-                    'year': None,
-                    'genres': [],
-                    'poster_path': None,
-                    'overview': 'In-memory storage item',
+                    'year': item.get('year'),
+                    'genres': item.get('genres', []),
+                    'poster_path': item.get('poster_path'),
+                    'overview': item.get('overview'),
                     'backdrop_path': None,
-                    'vote_average': None,
+                    'vote_average': item.get('vote_average'),
                     'release_date': None,
-                    'seasons': None,
-                    'episodes': None,
-                    'chapters': None,
-                    'volumes': None,
-                    'authors': [],
-                    'publisher': None,
-                    'page_count': None,
-                    'platforms': [],
-                    'developers': [],
-                    'publishers': [],
-                    'release_year': None,
-                    'rating': None,
-                    'game_modes': []
+                    'seasons': item.get('seasons'),
+                    'episodes': item.get('episodes'),
+                    'chapters': item.get('chapters'),
+                    'volumes': item.get('volumes'),
+                    'authors': item.get('authors', []),
+                    'publisher': item.get('publisher'),
+                    'page_count': item.get('page_count'),
+                    'platforms': item.get('platforms', []),
+                    'developers': item.get('developers', []),
+                    'publishers': item.get('publishers', []),
+                    'release_year': item.get('release_year'),
+                    'rating': item.get('rating'),
+                    'game_modes': item.get('game_modes', [])
                 }
             })
             
