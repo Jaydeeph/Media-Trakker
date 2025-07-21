@@ -1013,44 +1013,39 @@ const MediaPage = ({ mediaType, searchResults = [], searchQuery = '', loading = 
 
   return (
     <div className="space-y-8">
-      {/* Page Header with Integrated Search */}
-      <div className={`${theme === 'dark' ? 'bg-gray-800' : 'bg-white'} rounded-2xl p-6 shadow-xl border ${theme === 'dark' ? 'border-gray-700/50' : 'border-gray-200/50'}`}>
-        <div className="flex items-center justify-between gap-4 mb-6">
+      {/* Clean Apple-style Page Header */}
+      <div className={`${theme === 'dark' ? 'bg-gray-900/60' : 'bg-white/80'} backdrop-blur-xl rounded-2xl p-8 border ${theme === 'dark' ? 'border-gray-800/50' : 'border-gray-200/30'} shadow-sm`}>
+        <div className="flex items-center justify-between gap-6 mb-8">
           <div className="flex items-center gap-4">
-            <div className={`w-12 h-12 ${theme === 'dark' ? 'bg-gray-700' : 'bg-gray-100'} rounded-2xl flex items-center justify-center`}>
-              <span className="text-2xl">{mediaInfo.icon}</span>
+            <div className={`w-14 h-14 ${theme === 'dark' ? 'bg-gray-800/50' : 'bg-gray-100/50'} rounded-2xl flex items-center justify-center backdrop-blur-sm border ${theme === 'dark' ? 'border-gray-700/30' : 'border-gray-200/30'}`}>
+              <span className="text-3xl">{mediaInfo.icon}</span>
             </div>
             <div>
-              <h1 className={`text-3xl font-bold ${theme === 'dark' ? 'text-white' : 'text-gray-900'}`}>
+              <h1 className={`text-4xl font-bold ${theme === 'dark' ? 'text-white' : 'text-gray-900'} tracking-tight`}>
                 {mediaInfo.title}
               </h1>
-              <p className={`${theme === 'dark' ? 'text-gray-400' : 'text-gray-600'}`}>
+              <p className={`text-lg ${theme === 'dark' ? 'text-gray-400' : 'text-gray-500'} mt-1`}>
                 {mediaInfo.description}
               </p>
             </div>
           </div>
           
-          {/* Advanced Mode Toggle */}
-          <div className="flex items-center gap-4">
-            <div className="flex items-center gap-2">
-              <span className={`text-sm font-medium ${theme === 'dark' ? 'text-gray-300' : 'text-gray-700'}`}>
+          {/* Clean Advanced Mode Toggle */}
+          <div className="flex items-center gap-6">
+            <div className="flex items-center gap-3">
+              <span className={`text-sm font-medium ${!advancedMode ? 'text-gray-900 dark:text-white' : 'text-gray-500 dark:text-gray-400'}`}>
                 Simple
               </span>
               <button
                 onClick={onToggleAdvancedMode}
-                className={`relative w-12 h-6 rounded-full transition-all duration-200 ${advancedMode ? 'bg-gradient-to-r from-emerald-500 to-emerald-600' : theme === 'dark' ? 'bg-gray-600' : 'bg-gray-300'}`}
+                className={`relative w-14 h-7 rounded-full transition-all duration-300 ${advancedMode ? 'bg-blue-500' : theme === 'dark' ? 'bg-gray-700' : 'bg-gray-300'} focus:ring-4 focus:ring-blue-500/20 focus:outline-none`}
               >
-                <div className={`absolute w-5 h-5 bg-white rounded-full shadow-lg transition-all duration-200 transform ${advancedMode ? 'translate-x-6' : 'translate-x-0.5'} top-0.5`}></div>
+                <div className={`absolute w-5 h-5 bg-white rounded-full shadow-lg transition-all duration-300 transform ${advancedMode ? 'translate-x-7' : 'translate-x-1'} top-1`}></div>
               </button>
-              <span className={`text-sm font-medium ${theme === 'dark' ? 'text-gray-300' : 'text-gray-700'}`}>
+              <span className={`text-sm font-medium ${advancedMode ? 'text-gray-900 dark:text-white' : 'text-gray-500 dark:text-gray-400'}`}>
                 Advanced
               </span>
             </div>
-            {advancedMode && (
-              <div className={`px-3 py-1 ${theme === 'dark' ? 'bg-emerald-900/30 text-emerald-300' : 'bg-emerald-100 text-emerald-700'} rounded-full text-xs font-bold uppercase tracking-wide`}>
-                ✨ Pro Mode
-              </div>
-            )}
           </div>
         </div>
         
