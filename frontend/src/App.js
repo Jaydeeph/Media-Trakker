@@ -66,12 +66,10 @@ const ThemeProvider = ({ children }) => {
     allThemes: getAllThemes(),
     isLoading
   };
-    isLoading
-  };
 
   return (
     <ThemeContext.Provider value={value}>
-      <div className={theme}>
+      <div className={currentThemeName}>
         {children}
       </div>
     </ThemeContext.Provider>
