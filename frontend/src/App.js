@@ -1194,7 +1194,26 @@ function App() {
       const response = await axios.post(`${API}/user-list`, {
         media_id: mediaItem.id,
         media_type: mediaItem.media_type,
-        status: status
+        status: status,
+        // Include complete media information
+        title: mediaItem.title,
+        poster_path: mediaItem.poster_path,
+        year: mediaItem.year,
+        overview: mediaItem.overview,
+        genres: mediaItem.genres || [],
+        vote_average: mediaItem.vote_average,
+        seasons: mediaItem.seasons,
+        episodes: mediaItem.episodes,
+        chapters: mediaItem.chapters,
+        volumes: mediaItem.volumes,
+        authors: mediaItem.authors || [],
+        publisher: mediaItem.publisher,
+        page_count: mediaItem.page_count,
+        platforms: mediaItem.platforms || [],
+        developers: mediaItem.developers || [],
+        publishers: mediaItem.publishers || [],
+        release_year: mediaItem.release_year,
+        game_modes: mediaItem.game_modes || []
       });
       
       // Reload user list and stats
