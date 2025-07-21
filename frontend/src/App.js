@@ -848,7 +848,7 @@ const MediaPage = ({ mediaType, searchResults = [], searchQuery = '', loading = 
     const isInUserList = userMediaItems.some(item => item.media_item.external_id === media.external_id);
     
     return (
-      <div key={media.id} className={`group relative ${theme === 'dark' ? 'bg-gray-900/60' : 'bg-white/80'} backdrop-blur-xl rounded-2xl overflow-hidden border ${theme === 'dark' ? 'border-gray-800/50' : 'border-gray-200/30'} shadow-sm hover:shadow-2xl transition-all duration-500 ease-out transform hover:scale-[1.02] hover:-translate-y-1`}>
+      <div key={media.id} className={`group relative overflow-visible ${theme === 'dark' ? 'bg-gray-900/60' : 'bg-white/80'} backdrop-blur-xl rounded-2xl border ${theme === 'dark' ? 'border-gray-800/50' : 'border-gray-200/30'} shadow-sm hover:shadow-2xl transition-all duration-500 ease-out transform hover:scale-[1.02] hover:-translate-y-1`}>
         
         {/* Poster Container */}
         <div className="relative aspect-[2/3] overflow-hidden bg-gray-50 dark:bg-gray-800">
