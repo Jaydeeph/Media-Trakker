@@ -717,28 +717,22 @@ const ProfilePage = ({ userListItems, onUpdateItem, onRemoveItem }) => {
   );
 };
 
-// Enhanced Add to List Button Component with Status Selection
+// Apple-style Add to List Button Component
 const AddToListButton = ({ media, isInUserList, onAddToList, theme, mediaType }) => {
   const [showStatusDropdown, setShowStatusDropdown] = useState(false);
   
   const statusOptions = [
-    { value: 'planning', label: '📝 Planning', color: 'from-blue-500 to-blue-600' },
-    { value: 'watching', label: '👀 Watching', color: 'from-green-500 to-green-600' },
-    { value: 'completed', label: '✅ Completed', color: 'from-purple-500 to-purple-600' },
-    { value: 'paused', label: '⏸️ Paused', color: 'from-yellow-500 to-yellow-600' },
-    { value: 'dropped', label: '❌ Dropped', color: 'from-red-500 to-red-600' },
+    { value: 'planning', label: 'Planning' },
+    { value: 'watching', label: 'Watching' },
+    { value: 'completed', label: 'Completed' },
+    { value: 'paused', label: 'Paused' },
+    { value: 'dropped', label: 'Dropped' },
     // Add media-specific statuses
     ...(mediaType === 'game' ? [
-      { value: 'playing', label: '🎮 Playing', color: 'from-indigo-500 to-indigo-600' },
-      { value: 'completed', label: '🏆 Completed', color: 'from-purple-500 to-purple-600' }
+      { value: 'playing', label: 'Playing' }
     ] : []),
     ...((mediaType === 'book' || mediaType === 'manga') ? [
-      { value: 'reading', label: '📖 Reading', color: 'from-teal-500 to-teal-600' },
-      { value: 'completed', label: '📚 Read', color: 'from-purple-500 to-purple-600' }
-    ] : []),
-    ...((mediaType === 'movie' || mediaType === 'tv' || mediaType === 'anime') ? [
-      { value: 'watching', label: '👀 Watching', color: 'from-green-500 to-green-600' },
-      { value: 'completed', label: '✅ Watched', color: 'from-purple-500 to-purple-600' }
+      { value: 'reading', label: 'Reading' }
     ] : [])
   ];
   
@@ -755,12 +749,9 @@ const AddToListButton = ({ media, isInUserList, onAddToList, theme, mediaType })
   if (isInUserList) {
     return (
       <div className="absolute bottom-3 left-3 right-3">
-        <button
-          disabled
-          className={`w-full px-3 py-2 ${theme === 'dark' ? 'bg-gray-600' : 'bg-gray-400'} text-white rounded-lg cursor-not-allowed text-sm font-medium opacity-80`}
-        >
-          ✓ In List
-        </button>
+        <div className={`w-full px-4 py-2.5 ${theme === 'dark' ? 'bg-gray-900/80' : 'bg-white/80'} backdrop-blur-xl rounded-xl text-sm font-medium ${theme === 'dark' ? 'text-gray-300' : 'text-gray-600'} border ${theme === 'dark' ? 'border-gray-700/30' : 'border-gray-200/30'} text-center`}>
+          In Library
+        </div>
       </div>
     );
   }
@@ -770,32 +761,35 @@ const AddToListButton = ({ media, isInUserList, onAddToList, theme, mediaType })
       {!showStatusDropdown ? (
         <button
           onClick={() => setShowStatusDropdown(true)}
-          className="w-full px-3 py-2 bg-gradient-to-r from-emerald-500 to-emerald-600 text-white rounded-lg hover:from-emerald-600 hover:to-emerald-700 transition-all duration-200 text-sm font-medium shadow-lg hover:shadow-xl transform hover:scale-105 flex items-center justify-center gap-2"
+          className={`w-full px-4 py-2.5 ${theme === 'dark' ? 'bg-blue-600/90' : 'bg-blue-500/90'} backdrop-blur-xl rounded-xl text-white text-sm font-medium border ${theme === 'dark' ? 'border-blue-500/30' : 'border-blue-400/30'} hover:bg-blue-500 transition-all duration-200 flex items-center justify-center gap-2 shadow-lg hover:shadow-xl`}
         >
-          <span>➕</span>
-          Add to List
-          <span className="text-xs">▼</span>
+          Add to Library
+          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+          </svg>
         </button>
       ) : (
-        <div className={`absolute bottom-full mb-2 left-0 right-0 ${theme === 'dark' ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'} border rounded-2xl shadow-2xl backdrop-blur-sm z-50 overflow-hidden animate-in slide-in-from-bottom-4 duration-200`}>
-          <div className="p-2">
-            <div className={`text-xs font-bold ${theme === 'dark' ? 'text-gray-400' : 'text-gray-600'} px-3 py-2 uppercase tracking-wider`}>
-              Select Status
+        <div className={`${theme === 'dark' ? 'bg-gray-900/95' : 'bg-white/95'} backdrop-blur-xl rounded-2xl border ${theme === 'dark' ? 'border-gray-700/30' : 'border-gray-200/30'} shadow-2xl overflow-hidden`}>
+          <div className="p-3">
+            <div className={`text-xs font-semibold ${theme === 'dark' ? 'text-gray-400' : 'text-gray-500'} px-3 py-2 uppercase tracking-wider`}>
+              Add to List
             </div>
-            {uniqueStatusOptions.map((option) => (
-              <button
-                key={option.value}
-                onClick={() => handleStatusSelect(option.value)}
-                className={`w-full text-left px-3 py-2 text-sm font-medium rounded-lg mb-1 transition-all duration-150 hover:scale-105 bg-gradient-to-r ${option.color} text-white hover:shadow-lg`}
-              >
-                {option.label}
-              </button>
-            ))}
+            <div className="space-y-1">
+              {uniqueStatusOptions.map((option) => (
+                <button
+                  key={option.value}
+                  onClick={() => handleStatusSelect(option.value)}
+                  className={`w-full text-left px-4 py-3 text-sm font-medium rounded-xl ${theme === 'dark' ? 'text-white hover:bg-gray-800/50' : 'text-gray-900 hover:bg-gray-100/50'} transition-all duration-150 hover:scale-[1.02]`}
+                >
+                  {option.label}
+                </button>
+              ))}
+            </div>
           </div>
-          <div className="px-2 pb-2">
+          <div className={`px-3 pb-3 border-t ${theme === 'dark' ? 'border-gray-800/50' : 'border-gray-100/50'}`}>
             <button
               onClick={() => setShowStatusDropdown(false)}
-              className={`w-full px-3 py-2 text-xs ${theme === 'dark' ? 'text-gray-400 hover:text-gray-300' : 'text-gray-500 hover:text-gray-700'} rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors`}
+              className={`w-full px-3 py-2.5 text-sm ${theme === 'dark' ? 'text-gray-400 hover:text-gray-300' : 'text-gray-500 hover:text-gray-700'} rounded-xl hover:bg-gray-100/30 dark:hover:bg-gray-800/30 transition-all duration-150 mt-2`}
             >
               Cancel
             </button>
