@@ -866,7 +866,7 @@ async def add_to_user_list(item: UserListItemCreate, db: Session = Depends(get_d
         if existing_item:
             raise HTTPException(status_code=400, detail="Item already in your list")
             
-        # Add to memory storage
+        # Add to memory storage with complete media information
         new_item = {
             'id': str(uuid.uuid4()),
             'user_id': 'demo_user',
@@ -877,7 +877,26 @@ async def add_to_user_list(item: UserListItemCreate, db: Session = Depends(get_d
             'notes': item.notes,
             'progress': item.progress,
             'created_at': datetime.utcnow().isoformat(),
-            'updated_at': datetime.utcnow().isoformat()
+            'updated_at': datetime.utcnow().isoformat(),
+            # Complete media information
+            'title': item.title,
+            'poster_path': item.poster_path,
+            'year': item.year,
+            'overview': item.overview,
+            'genres': item.genres or [],
+            'vote_average': item.vote_average,
+            'seasons': item.seasons,
+            'episodes': item.episodes,
+            'chapters': item.chapters,
+            'volumes': item.volumes,
+            'authors': item.authors or [],
+            'publisher': item.publisher,
+            'page_count': item.page_count,
+            'platforms': item.platforms or [],
+            'developers': item.developers or [],
+            'publishers': item.publishers or [],
+            'release_year': item.release_year,
+            'game_modes': item.game_modes or []
         }
         memory_storage['user_list'].append(new_item)
         
